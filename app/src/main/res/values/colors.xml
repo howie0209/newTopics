@@ -2,5 +2,12 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="trace_green">#4CAF50</color>
+
+    <color name="primary_green">#00796B</color>
+    <color name="trace_green">#00796B</color>
+
+    <color name="text_gray">#666666</color>
+
+    <color name="bg_gradient_start">#E0F7FA</color>
+    <color name="bg_gradient_end">#B2EBF2</color>
 </resources>
