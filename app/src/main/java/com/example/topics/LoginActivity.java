@@ -22,10 +22,12 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 修改處：登入後先跳轉到「主選單 (MainActivity)」
-                Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                // 修改處：驗證成功後直接跳轉到「地圖頁面 (MapActivity)」
+                Intent intent = new Intent(LoginActivity.this, MapActivity.class);
                 startActivity(intent);
-                finish(); // 登入後關閉此頁，防止按返回鍵回到登入畫面
+
+                // 登入後關閉此頁，防止使用者按返回鍵回到登入畫面
+                finish();
             }
         });
 

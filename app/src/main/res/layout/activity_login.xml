@@ -7,24 +7,7 @@
     android:background="@drawable/bg_gradient"
     android:padding="20dp">
 
-    <LinearLayout
-        android:id="@+id/layout_back_login"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:background="@color/primary_green"
-        android:orientation="horizontal"
-        android:padding="8dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="← 返回首頁"
-            android:textColor="@android:color/white"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
