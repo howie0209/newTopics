@@ -1,19 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_gradient"
-    android:padding="20dp">
+    android:background="@color/dark_bg">
 
+    <!-- 💡 背景層：嵌入即時地圖 -->
+    <fragment
+        android:id="@+id/register_map_background"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
+    <!-- 💡 遮罩層：確保地圖不會干擾文字讀取 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#880B121E" />
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="12dp"
+        android:layout_margin="20dp"
+        app:cardCornerRadius="20dp"
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/card_transparent"
         app:cardUseCompatPadding="true">
 
         <LinearLayout
@@ -27,8 +40,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
                 android:gravity="center"
-                android:text="註冊"
-                android:textColor="@color/primary_green"
+                android:text="建立漂流身份"
+                android:textColor="@color/white"
                 android:textSize="26sp"
                 android:textStyle="bold" />
 
@@ -36,7 +49,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="用戶名稱"
-                android:textColor="@color/primary_green"
+                android:textColor="@color/cyan_primary"
                 android:textStyle="bold" />
 
             <EditText
@@ -45,8 +58,10 @@
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="16dp"
-                android:background="@android:drawable/editbox_background_normal"
+                android:background="@drawable/bg_edittext_dark"
                 android:hint="請輸入您的用戶名稱"
+                android:textColorHint="@color/hint_text"
+                android:textColor="@color/white"
                 android:paddingStart="12dp"
                 android:textSize="14sp" />
 
@@ -54,7 +69,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="電子郵件"
-                android:textColor="@color/primary_green"
+                android:textColor="@color/cyan_primary"
                 android:textStyle="bold" />
 
             <EditText
@@ -63,8 +78,10 @@
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="16dp"
-                android:background="@android:drawable/editbox_background_normal"
+                android:background="@drawable/bg_edittext_dark"
                 android:hint="請輸入您的電子郵件"
+                android:textColorHint="@color/hint_text"
+                android:textColor="@color/white"
                 android:inputType="textEmailAddress"
                 android:paddingStart="12dp"
                 android:textSize="14sp" />
@@ -73,7 +90,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="密碼"
-                android:textColor="@color/primary_green"
+                android:textColor="@color/cyan_primary"
                 android:textStyle="bold" />
 
             <EditText
@@ -82,8 +99,10 @@
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="16dp"
-                android:background="@android:drawable/editbox_background_normal"
+                android:background="@drawable/bg_edittext_dark"
                 android:hint="請輸入您的密碼"
+                android:textColorHint="@color/hint_text"
+                android:textColor="@color/white"
                 android:inputType="textPassword"
                 android:paddingStart="12dp"
                 android:textSize="14sp" />
@@ -92,7 +111,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="確認密碼"
-                android:textColor="@color/primary_green"
+                android:textColor="@color/cyan_primary"
                 android:textStyle="bold" />
 
             <EditText
@@ -101,8 +120,10 @@
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="24dp"
-                android:background="@android:drawable/editbox_background_normal"
+                android:background="@drawable/bg_edittext_dark"
                 android:hint="請再次輸入密碼"
+                android:textColorHint="@color/hint_text"
+                android:textColor="@color/white"
                 android:inputType="textPassword"
                 android:paddingStart="12dp"
                 android:textSize="14sp" />
@@ -111,11 +132,12 @@
                 android:id="@+id/btn_register_submit"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:backgroundTint="@color/primary_green"
+                android:backgroundTint="@color/cyan_primary"
                 android:text="註冊"
-                android:textColor="@android:color/white"
+                android:textColor="@color/dark_bg"
                 android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                app:cornerRadius="10dp" />
 
             <TextView
                 android:id="@+id/tv_go_login"
@@ -126,7 +148,7 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:text="已有帳號？登入"
-                android:textColor="@color/primary_green"
+                android:textColor="@color/cyan_primary"
                 android:textSize="14sp" />
 
         </LinearLayout>

@@ -1,13 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 基礎顏色 -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
+    <!-- 原本的綠色系 (保留備用) -->
     <color name="primary_green">#00796B</color>
     <color name="trace_green">#00796B</color>
-
     <color name="text_gray">#666666</color>
 
-    <color name="bg_gradient_start">#E0F7FA</color>
-    <color name="bg_gradient_end">#B2EBF2</color>
+    <!-- ✨ 照片中的專業深色風格配色 ✨ -->
+
+    <!-- 背景主色 (極深藍黑) -->
+    <color name="dark_bg">#0B121E</color>
+
+    <!-- 卡片與輸入框背景 (深藍灰) -->
+    <color name="dark_card">#1A2232</color>
+
+    <!-- 半透明卡片背景 (用於浮動感，BB 是透明度約 73%) -->
+    <color name="card_transparent">#BB1A2232</color>
+
+    <!-- 關鍵亮色：青藍色 (用於按鈕、標題、重點) -->
+    <color name="cyan_primary">#50E3C2</color>
+
+    <!-- 輸入框邊框色 -->
+    <color name="input_stroke">#3D4758</color>
+
+    <!-- 提示文字顏色 (暗灰色) -->
+    <color name="hint_text">#666666</color>
+
+    <!-- 原本的漸層色 (已根據風格微調為偏深色調) -->
+    <color name="bg_gradient_start">#1A2232</color>
+    <color name="bg_gradient_end">#0B121E</color>
 </resources>

@@ -3,6 +3,8 @@ package com.example.topics;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,7 +14,10 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,8 +26,9 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
-import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -34,10 +40,11 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.navigation.NavigationView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -52,10 +59,31 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
+    private DrawerLayout drawerLayout;
 
     private Spinner moodSpinner;
     private EditText diaryInput;
+    private RadioGroup rgVisibility;
     private BottomSheetBehavior<View> bottomSheetBehavior;
+
+    // --- 側邊欄元件 ---
+    private TextView tabMine, tabFriends;
+    private TextView tvCountMine, tvCountVisible;
+    private Button btnPriv, btnFrdOnly, btnPub;
+    private LinearLayout layoutMyDiaryRoot, layoutFriendManagement;
+    private EditText etSearchFriend;
+    private ImageButton btnSearchUser;
+
+    // --- 日記列表相關 ---
+    private RecyclerView rvDiaryList;
+    private DiaryListAdapter diaryListAdapter;
+    private List<DiaryEntry> displayedDiaries = new ArrayList<>();
+    private boolean isShowingMine = true;
+    private int currentFilter = -1; // -1: 全部, 0: 私人, 1: 朋友, 2: 公開
+
+    // --- 好友列表相關 ---
+    private RecyclerView rvSentRequests, rvReceivedRequests, rvFriendsList;
+    private TextView tvEmptySent, tvEmptyReceived, tvEmptyFriends;
 
     // --- 多圖預覽相關 ---
     private RecyclerView rvImagePreview;
@@ -71,8 +99,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         String text;
         String time;
         List<Uri> images;
-        public DiaryEntry(LatLng loc, String m, String t, String time, List<Uri> images) {
-            this.location = loc; this.mood = m; this.text = t; this.time = time; this.images = images;
+        boolean isMine;
+        int visibility;
+
+        public DiaryEntry(LatLng loc, String m, String t, String time, List<Uri> images, boolean isMine, int visibility) {
+            this.location = loc; this.mood = m; this.text = t; this.time = time;
+            this.images = images; this.isMine = isMine; this.visibility = visibility;
         }
     }
 
@@ -81,49 +113,69 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
 
-        initNavigation();
-        View bottomSheet = findViewById(R.id.diary_bottom_sheet);
-        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        drawerLayout = findViewById(R.id.drawer_layout);
+        ImageButton btnOpenDrawer = findViewById(R.id.btn_open_drawer);
+        if (btnOpenDrawer != null) {
+            btnOpenDrawer.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.END);
+            });
+        }
 
-        findViewById(R.id.fab_show_diary).setOnClickListener(v -> {
-            lastSelectedMarker = null;
-            diaryInput.setText("");
-            diaryInput.setEnabled(true);
-            selectedImageUris.clear();
-            imageAdapter.notifyDataSetChanged();
-            rvImagePreview.setVisibility(View.GONE);
-            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-        });
+        initNavigation();
+        initToggleSwitch();
+
+        View bottomSheet = findViewById(R.id.diary_bottom_sheet);
+        if (bottomSheet != null) {
+            bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        }
+
+        View fabAdd = findViewById(R.id.btn_top_add_diary);
+        if (fabAdd != null) {
+            fabAdd.setOnClickListener(v -> {
+                lastSelectedMarker = null;
+                diaryInput.setText("");
+                diaryInput.setEnabled(true);
+                rgVisibility.check(R.id.rb_private);
+                selectedImageUris.clear();
+                imageAdapter.notifyDataSetChanged();
+                rvImagePreview.setVisibility(View.GONE);
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            });
+        }
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         moodSpinner = findViewById(R.id.mood_spinner);
         diaryInput = findViewById(R.id.diary_input);
-
+        rgVisibility = findViewById(R.id.rg_visibility);
         rvImagePreview = findViewById(R.id.rv_image_preview);
-        rvImagePreview.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        imageAdapter = new ImageAdapter();
-        rvImagePreview.setAdapter(imageAdapter);
 
-        // 💡 加入拖拽排序功能
-        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
-                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, 0) {
-            @Override
-            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
-                if (!diaryInput.isEnabled()) return false;
-                int from = viewHolder.getAdapterPosition();
-                int to = target.getAdapterPosition();
-                Collections.swap(selectedImageUris, from, to);
-                imageAdapter.notifyItemMoved(from, to);
-                return true;
-            }
-            @Override
-            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {}
-        });
-        itemTouchHelper.attachToRecyclerView(rvImagePreview);
+        if (rvImagePreview != null) {
+            rvImagePreview.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            imageAdapter = new ImageAdapter();
+            rvImagePreview.setAdapter(imageAdapter);
+
+            ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(
+                    ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, 0) {
+                @Override
+                public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                    if (diaryInput != null && !diaryInput.isEnabled()) return false;
+                    int from = viewHolder.getAdapterPosition();
+                    int to = target.getAdapterPosition();
+                    Collections.swap(selectedImageUris, from, to);
+                    imageAdapter.notifyItemMoved(from, to);
+                    return true;
+                }
+                @Override
+                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {}
+            });
+            itemTouchHelper.attachToRecyclerView(rvImagePreview);
+        }
 
         String[] moods = {"😊 開心", "😢 難過", "😎 平靜", "🤩 興奮", "😴 累了"};
-        moodSpinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moods));
+        if (moodSpinner != null) {
+            moodSpinner.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moods));
+        }
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_fragment);
         if (mapFragment != null) mapFragment.getMapAsync(this);
@@ -137,15 +189,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                             int count = data.getClipData().getItemCount();
                             for (int i = 0; i < count; i++) {
                                 Uri uri = data.getClipData().getItemAt(i).getUri();
-                                if (!selectedImageUris.contains(uri)) {
-                                    selectedImageUris.add(uri);
-                                }
+                                if (!selectedImageUris.contains(uri)) selectedImageUris.add(uri);
                             }
                         } else if (data.getData() != null) {
                             Uri uri = data.getData();
-                            if (!selectedImageUris.contains(uri)) {
-                                selectedImageUris.add(uri);
-                            }
+                            if (!selectedImageUris.contains(uri)) selectedImageUris.add(uri);
                         }
                         imageAdapter.notifyDataSetChanged();
                         rvImagePreview.setVisibility(View.VISIBLE);
@@ -153,42 +201,78 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 }
         );
 
-        findViewById(R.id.card_image_picker).setOnClickListener(v -> {
-            if (diaryInput.isEnabled()) {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("image/*");
-                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                photoPickerLauncher.launch(Intent.createChooser(intent, "選擇照片"));
-            } else {
-                Toast.makeText(this, "查看模式下無法修改照片", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        findViewById(R.id.btn_save).setOnClickListener(v -> {
-            if (diaryInput.isEnabled()) {
-                saveTrace();
-                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-            } else {
-                Toast.makeText(this, "目前為閱讀模式，無法儲存修改", Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        findViewById(R.id.btn_more_options).setOnClickListener(v -> {
-            PopupMenu popup = new PopupMenu(this, v);
-            popup.getMenu().add("🗑️ 刪除這則日記");
-            popup.setOnMenuItemClickListener(item -> {
-                if (item.getTitle().equals("🗑️ 刪除這則日記")) {
-                    if (lastSelectedMarker != null) {
-                        deleteCurrentDiary();
-                    } else {
-                        Toast.makeText(this, "請先點選地圖上的標記再進行刪除", Toast.LENGTH_SHORT).show();
-                    }
-                    return true;
+        View imagePicker = findViewById(R.id.card_image_picker);
+        if (imagePicker != null) {
+            imagePicker.setOnClickListener(v -> {
+                if (diaryInput.isEnabled()) {
+                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                    intent.setType("image/*");
+                    intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                    photoPickerLauncher.launch(Intent.createChooser(intent, "選擇照片"));
+                } else {
+                    Toast.makeText(this, "查看模式下無法修改照片", Toast.LENGTH_SHORT).show();
                 }
-                return false;
             });
-            popup.show();
-        });
+        }
+
+        View btnSave = findViewById(R.id.btn_save);
+        if (btnSave != null) {
+            btnSave.setOnClickListener(v -> {
+                if (diaryInput.isEnabled()) {
+                    saveTrace();
+                    bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                    updateStatistics();
+                } else {
+                    Toast.makeText(this, "目前為閱讀模式，無法儲存修改", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        ImageButton btnMore = findViewById(R.id.btn_more_options);
+        if (btnMore != null) {
+            btnMore.setOnClickListener(v -> {
+                PopupMenu popup = new PopupMenu(this, v);
+                popup.getMenu().add("🗑️ 刪除這則日記");
+                popup.setOnMenuItemClickListener(item -> {
+                    if (item.getTitle().equals("🗑️ 刪除這則日記")) {
+                        if (lastSelectedMarker != null) {
+                            deleteCurrentDiary();
+                            updateStatistics();
+                        }
+                        return true;
+                    }
+                    return false;
+                });
+                popup.show();
+            });
+        }
+    }
+
+    private void initToggleSwitch() {
+        TextView btnSwitchMine = findViewById(R.id.btn_switch_mine);
+        LinearLayout btnSwitchExplore = findViewById(R.id.btn_switch_explore);
+
+        if (btnSwitchMine != null && btnSwitchExplore != null) {
+            btnSwitchMine.setOnClickListener(v -> {
+                btnSwitchMine.setBackgroundResource(R.drawable.bg_login_card);
+                btnSwitchMine.setTextColor(Color.WHITE);
+                btnSwitchExplore.setBackground(null);
+                TextView tvExp = (TextView) btnSwitchExplore.getChildAt(1);
+                ImageView ivExp = (ImageView) btnSwitchExplore.getChildAt(0);
+                tvExp.setTextColor(Color.parseColor("#99FFFFFF"));
+                ivExp.setImageTintList(ColorStateList.valueOf(Color.parseColor("#99FFFFFF")));
+            });
+
+            btnSwitchExplore.setOnClickListener(v -> {
+                btnSwitchExplore.setBackgroundResource(R.drawable.bg_login_card);
+                TextView tvExp = (TextView) btnSwitchExplore.getChildAt(1);
+                ImageView ivExp = (ImageView) btnSwitchExplore.getChildAt(0);
+                tvExp.setTextColor(Color.WHITE);
+                ivExp.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+                btnSwitchMine.setBackground(null);
+                btnSwitchMine.setTextColor(Color.parseColor("#99FFFFFF"));
+            });
+        }
     }
 
     private void deleteCurrentDiary() {
@@ -196,26 +280,163 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             markerDataMap.remove(lastSelectedMarker.getId());
             lastSelectedMarker.remove();
             lastSelectedMarker = null;
-
             diaryInput.setText("");
             selectedImageUris.clear();
             imageAdapter.notifyDataSetChanged();
             rvImagePreview.setVisibility(View.GONE);
-
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-            Toast.makeText(this, "日記已成功刪除", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "日記已刪除", Toast.LENGTH_SHORT).show();
+            updateDiaryList();
         }
     }
 
     private void initNavigation() {
-        findViewById(R.id.nav_home).setOnClickListener(v -> startActivity(new Intent(this, MainActivity.class)));
-        findViewById(R.id.nav_map).setOnClickListener(v -> Toast.makeText(this, "目前已在日記地圖", Toast.LENGTH_SHORT).show());
-        findViewById(R.id.nav_friends).setOnClickListener(v -> Toast.makeText(this, "好友功能開發中！", Toast.LENGTH_SHORT).show());
+        NavigationView navView = findViewById(R.id.nav_view);
+        if (navView != null) {
+            tabMine = navView.findViewById(R.id.tab_view_mine);
+            tabFriends = navView.findViewById(R.id.tab_view_friends);
+            tvCountMine = navView.findViewById(R.id.tv_my_diary_count);
+            tvCountVisible = navView.findViewById(R.id.tv_visible_memory_count);
+            btnPriv = navView.findViewById(R.id.filter_private);
+            btnFrdOnly = navView.findViewById(R.id.filter_friends);
+            btnPub = navView.findViewById(R.id.filter_public);
+            rvDiaryList = navView.findViewById(R.id.rv_diary_history);
+
+            layoutMyDiaryRoot = navView.findViewById(R.id.layout_my_diary_root);
+            layoutFriendManagement = navView.findViewById(R.id.layout_friend_management);
+            etSearchFriend = navView.findViewById(R.id.et_search_friend);
+            btnSearchUser = navView.findViewById(R.id.btn_search_user);
+
+            rvSentRequests = navView.findViewById(R.id.rv_sent_requests);
+            rvReceivedRequests = navView.findViewById(R.id.rv_received_requests);
+            rvFriendsList = navView.findViewById(R.id.rv_friends_list);
+            tvEmptySent = navView.findViewById(R.id.tv_empty_sent);
+            tvEmptyReceived = navView.findViewById(R.id.tv_empty_received);
+            tvEmptyFriends = navView.findViewById(R.id.tv_empty_friends);
+
+            if (rvDiaryList != null) {
+                rvDiaryList.setLayoutManager(new LinearLayoutManager(this));
+                diaryListAdapter = new DiaryListAdapter();
+                rvDiaryList.setAdapter(diaryListAdapter);
+            }
+
+            if (rvFriendsList != null) rvFriendsList.setLayoutManager(new LinearLayoutManager(this));
+            if (rvSentRequests != null) rvSentRequests.setLayoutManager(new LinearLayoutManager(this));
+            if (rvReceivedRequests != null) rvReceivedRequests.setLayoutManager(new LinearLayoutManager(this));
+
+            if (tabMine != null) {
+                tabMine.setOnClickListener(v -> {
+                    isShowingMine = true;
+                    tabMine.setBackgroundResource(R.drawable.bg_login_card);
+                    tabMine.setTextColor(Color.WHITE);
+                    if (tabFriends != null) {
+                        tabFriends.setBackground(null);
+                        tabFriends.setTextColor(Color.parseColor("#99FFFFFF"));
+                    }
+                    if (layoutMyDiaryRoot != null) layoutMyDiaryRoot.setVisibility(View.VISIBLE);
+                    if (layoutFriendManagement != null) layoutFriendManagement.setVisibility(View.GONE);
+                    updateDiaryList();
+                });
+            }
+
+            if (tabFriends != null) {
+                tabFriends.setOnClickListener(v -> {
+                    isShowingMine = false;
+                    tabFriends.setBackgroundResource(R.drawable.bg_login_card);
+                    tabFriends.setTextColor(Color.WHITE);
+                    if (tabMine != null) {
+                        tabMine.setBackground(null);
+                        tabMine.setTextColor(Color.parseColor("#99FFFFFF"));
+                    }
+                    if (layoutMyDiaryRoot != null) layoutMyDiaryRoot.setVisibility(View.GONE);
+                    if (layoutFriendManagement != null) layoutFriendManagement.setVisibility(View.VISIBLE);
+                    updateFriendEmptyStates();
+                });
+            }
+
+            if (btnPriv != null) btnPriv.setOnClickListener(v -> handleFilterClick(0, btnPriv));
+            if (btnFrdOnly != null) btnFrdOnly.setOnClickListener(v -> handleFilterClick(1, btnFrdOnly));
+            if (btnPub != null) btnPub.setOnClickListener(v -> handleFilterClick(2, btnPub));
+
+            updateStatistics();
+            updateDiaryList();
+
+            View btnLogout = navView.findViewById(R.id.btn_logout);
+            if (btnLogout != null) {
+                btnLogout.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                });
+            }
+        }
+    }
+
+    private void handleFilterClick(int filterType, Button btn) {
+        if (currentFilter == filterType) {
+            currentFilter = -1;
+            updateFilterUI(null);
+        } else {
+            currentFilter = filterType;
+            updateFilterUI(btn);
+        }
+        updateDiaryList();
+    }
+
+    private void updateFriendEmptyStates() {
+        if (tvEmptySent != null) tvEmptySent.setVisibility(View.VISIBLE);
+        if (tvEmptyReceived != null) tvEmptyReceived.setVisibility(View.VISIBLE);
+        if (tvEmptyFriends != null) tvEmptyFriends.setVisibility(View.VISIBLE);
+    }
+
+    private void updateDiaryList() {
+        displayedDiaries.clear();
+        for (DiaryEntry entry : markerDataMap.values()) {
+            if (isShowingMine == entry.isMine) {
+                if (currentFilter == -1 || entry.visibility == currentFilter) {
+                    displayedDiaries.add(entry);
+                }
+            }
+        }
+        Collections.sort(displayedDiaries, (d1, d2) -> d2.time.compareTo(d1.time));
+        if (diaryListAdapter != null) diaryListAdapter.notifyDataSetChanged();
+    }
+
+    private void updateFilterUI(Button selected) {
+        Button[] btns = {btnPriv, btnFrdOnly, btnPub};
+        for (Button b : btns) {
+            if (b == null) continue;
+            if (b == selected) {
+                b.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00E5FF")));
+                b.setTextColor(Color.BLACK);
+            } else {
+                b.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#33FFFFFF")));
+                b.setTextColor(Color.WHITE);
+            }
+        }
+    }
+
+    private void updateStatistics() {
+        if (tvCountMine != null && tvCountVisible != null) {
+            int mineCount = 0;
+            int friendsCount = 0;
+            for (DiaryEntry entry : markerDataMap.values()) {
+                if (entry.isMine) mineCount++;
+                else friendsCount++;
+            }
+            tvCountMine.setText(String.valueOf(mineCount));
+            tvCountVisible.setText(String.valueOf(friendsCount));
+        }
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        try {
+            googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style_dark));
+        } catch (Exception e) { e.printStackTrace(); }
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         }
@@ -223,31 +444,33 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
             @Override
             public View getInfoWindow(@NonNull Marker marker) { return null; }
+
             @Override
             public View getInfoContents(@NonNull Marker marker) {
-                View view = getLayoutInflater().inflate(R.layout.custom_info_window, null);
-                TextView tvTitle = view.findViewById(R.id.tv_info_title);
-                TextView tvSnippet = view.findViewById(R.id.tv_info_snippet);
-                ImageView ivImage = view.findViewById(R.id.iv_info_image);
-
-                tvTitle.setText(marker.getTitle());
-                tvSnippet.setText(marker.getSnippet());
-
                 DiaryEntry entry = markerDataMap.get(marker.getId());
-                if (entry != null && entry.images != null && !entry.images.isEmpty()) {
-                    ivImage.setVisibility(View.VISIBLE);
-                    ivImage.setImageURI(entry.images.get(0));
+                if (entry == null) return null;
+
+                View v = getLayoutInflater().inflate(R.layout.custom_info_window, null);
+                ImageView ivPhoto = v.findViewById(R.id.iv_marker_photo);
+                TextView tvTitle = v.findViewById(R.id.tv_marker_title);
+                TextView tvSnippet = v.findViewById(R.id.tv_marker_snippet);
+
+                tvTitle.setText(entry.mood);
+                tvSnippet.setText(entry.text);
+
+                if (entry.images != null && !entry.images.isEmpty()) {
+                    ivPhoto.setVisibility(View.VISIBLE);
+                    ivPhoto.setImageURI(entry.images.get(0));
                 } else {
-                    ivImage.setVisibility(View.GONE);
+                    ivPhoto.setVisibility(View.GONE);
                 }
-                return view;
+                return v;
             }
         });
 
         mMap.setOnMarkerClickListener(marker -> {
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
             lastSelectedMarker = marker;
-
             DiaryEntry entry = markerDataMap.get(marker.getId());
             if (entry != null) {
                 diaryInput.setText(entry.text);
@@ -257,23 +480,23 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         break;
                     }
                 }
+                if (entry.visibility == 0) rgVisibility.check(R.id.rb_private);
+                else if (entry.visibility == 1) rgVisibility.check(R.id.rb_friends);
+                else rgVisibility.check(R.id.rb_public);
+
                 selectedImageUris.clear();
-                if (entry.images != null && !entry.images.isEmpty()) {
-                    selectedImageUris.addAll(entry.images);
-                    rvImagePreview.setVisibility(View.VISIBLE);
-                } else {
-                    rvImagePreview.setVisibility(View.GONE);
-                }
+                if (entry.images != null) selectedImageUris.addAll(entry.images);
                 imageAdapter.notifyDataSetChanged();
+                rvImagePreview.setVisibility(selectedImageUris.isEmpty() ? View.GONE : View.VISIBLE);
             }
             checkDistanceAndEdit(marker);
-            return false;
+            marker.showInfoWindow();
+            return true;
         });
     }
 
     private void saveTrace() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
-
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
             if (location != null) {
                 LatLng currentPos = (lastSelectedMarker != null) ? lastSelectedMarker.getPosition() : new LatLng(location.getLatitude(), location.getLongitude());
@@ -281,50 +504,101 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 String diaryText = diaryInput.getText().toString();
                 String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
 
+                int visibility = 0;
+                int checkedId = rgVisibility.getCheckedRadioButtonId();
+                if (checkedId == R.id.rb_friends) visibility = 1;
+                else if (checkedId == R.id.rb_public) visibility = 2;
+
                 if (lastSelectedMarker != null) {
                     markerDataMap.remove(lastSelectedMarker.getId());
                     lastSelectedMarker.remove();
-                    lastSelectedMarker = null;
                 }
 
-                DiaryEntry entry = new DiaryEntry(currentPos, selectedMood, diaryText, currentTime, new ArrayList<>(selectedImageUris));
-                Marker marker = mMap.addMarker(new MarkerOptions()
-                        .position(currentPos)
-                        .title(selectedMood + " (" + currentTime + ")")
-                        .snippet(diaryText));
+                DiaryEntry entry = new DiaryEntry(currentPos, selectedMood, diaryText, currentTime, new ArrayList<>(selectedImageUris), true, visibility);
+                Marker marker = mMap.addMarker(new MarkerOptions().position(currentPos).title(selectedMood));
 
                 markerDataMap.put(marker.getId(), entry);
-                selectedImageUris.clear();
-                imageAdapter.notifyDataSetChanged();
-                rvImagePreview.setVisibility(View.GONE);
-                diaryInput.setText("");
                 Toast.makeText(this, "紀錄成功！", Toast.LENGTH_SHORT).show();
+                updateStatistics();
+                updateDiaryList();
             }
         });
     }
 
     private void checkDistanceAndEdit(Marker marker) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
-
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
             if (location != null) {
                 float[] results = new float[1];
                 Location.distanceBetween(location.getLatitude(), location.getLongitude(),
                         marker.getPosition().latitude, marker.getPosition().longitude, results);
 
-                float distanceInMeters = results[0];
-
-                if (distanceInMeters <= 50) {
-                    lastSelectedMarker = marker;
-                    diaryInput.setEnabled(true);
-                    imageAdapter.notifyDataSetChanged();
-                } else {
-                    diaryInput.setEnabled(false);
-                    imageAdapter.notifyDataSetChanged();
-                    Toast.makeText(this, "太遠了！僅供閱讀。距離約 " + (int)distanceInMeters + "m", Toast.LENGTH_LONG).show();
+                boolean canEdit = results[0] <= 50;
+                diaryInput.setEnabled(canEdit);
+                for (int i = 0; i < rgVisibility.getChildCount(); i++) {
+                    rgVisibility.getChildAt(i).setEnabled(canEdit);
                 }
+
+                if (!canEdit) {
+                    Toast.makeText(this, "太遠了！僅供閱讀。距離約 " + (int)results[0] + "m", Toast.LENGTH_SHORT).show();
+                }
+                imageAdapter.notifyDataSetChanged();
             }
         });
+    }
+
+    private class DiaryListAdapter extends RecyclerView.Adapter<DiaryListAdapter.ViewHolder> {
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_diary_list, parent, false);
+            return new ViewHolder(v);
+        }
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            DiaryEntry entry = displayedDiaries.get(position);
+
+            // 標題僅顯示心情文字，移除圖案
+            holder.tvTitle.setText(entry.mood);
+            holder.tvTime.setText(entry.time);
+
+            // 將權限圖案顯示在最右側的 tvIcon 元件中
+            String icon = (entry.visibility == 0) ? "🔒" : (entry.visibility == 1) ? "👥" : "👁️";
+            if (holder.tvIcon != null) {
+                holder.tvIcon.setText(icon);
+            }
+
+            holder.itemView.setOnClickListener(v -> {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(entry.location, 15f));
+                drawerLayout.closeDrawer(GravityCompat.END);
+            });
+
+            holder.itemView.setOnLongClickListener(v -> {
+                PopupMenu popup = new PopupMenu(MapActivity.this, v);
+                popup.getMenu().add(0, 0, 0, "🔒 設為私人");
+                popup.getMenu().add(0, 1, 1, "👥 設為朋友");
+                popup.getMenu().add(0, 2, 2, "👁️ 設為公開");
+                popup.setOnMenuItemClickListener(item -> {
+                    entry.visibility = item.getItemId();
+                    updateDiaryList();
+                    Toast.makeText(MapActivity.this, "權限已更新", Toast.LENGTH_SHORT).show();
+                    return true;
+                });
+                popup.show();
+                return true;
+            });
+        }
+        @Override
+        public int getItemCount() { return displayedDiaries.size(); }
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvTitle, tvTime, tvIcon;
+            ViewHolder(View v) {
+                super(v);
+                tvTitle = v.findViewById(R.id.tv_item_title);
+                tvTime = v.findViewById(R.id.tv_item_time);
+                tvIcon = v.findViewById(R.id.tv_item_icon); // 綁定新元件
+            }
+        }
     }
 
     private class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> {
@@ -338,37 +612,22 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             holder.img.setImageURI(selectedImageUris.get(position));
-            holder.img.setScaleType(ImageView.ScaleType.CENTER_CROP);
-
-            if (diaryInput.isEnabled()) {
-                holder.btnDelete.setVisibility(View.VISIBLE);
-                holder.btnDelete.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
-                holder.btnDelete.setColorFilter(android.graphics.Color.parseColor("#424242"));
-                holder.btnDelete.setBackgroundResource(android.R.drawable.presence_offline);
-                holder.btnDelete.getBackground().setTint(android.graphics.Color.parseColor("#EEEEEE"));
-            } else {
-                holder.btnDelete.setVisibility(View.GONE);
-            }
-
+            holder.btnDelete.setVisibility(diaryInput.isEnabled() ? View.VISIBLE : View.GONE);
             holder.btnDelete.setOnClickListener(v -> {
-                if (diaryInput.isEnabled()) {
-                    int currentPos = holder.getAdapterPosition();
-                    if (currentPos != RecyclerView.NO_POSITION) {
-                        selectedImageUris.remove(currentPos);
-                        notifyDataSetChanged();
-                        if (selectedImageUris.isEmpty()) rvImagePreview.setVisibility(View.GONE);
-                    }
+                int cp = holder.getAdapterPosition();
+                if (cp != RecyclerView.NO_POSITION) {
+                    selectedImageUris.remove(cp);
+                    notifyDataSetChanged();
+                    if (selectedImageUris.isEmpty()) rvImagePreview.setVisibility(View.GONE);
                 }
             });
-            // 💡 移除原本的 setOnLongClickListener 刪除邏輯
         }
 
         @Override
         public int getItemCount() { return selectedImageUris.size(); }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            ImageView img;
-            ImageView btnDelete;
+            ImageView img, btnDelete;
             ViewHolder(View v) {
                 super(v);
                 img = v.findViewById(R.id.iv_preview);
@@ -376,4 +635,4 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
         }
     }
-}0
+}

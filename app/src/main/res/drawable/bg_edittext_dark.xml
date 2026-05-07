@@ -1,0 +1,5 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#252F3F" /> <!-- 稍微亮一點的深藍灰色 -->
+    <corners android:radius="8dp" />
+    <stroke android:width="1dp" android:color="#3D4758" /> <!-- 暗色邊框 -->
+</shape>
