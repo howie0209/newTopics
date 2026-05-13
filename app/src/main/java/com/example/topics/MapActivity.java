@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log; // 💡 新增：用來印出連線錯誤訊息
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -54,6 +55,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+// 💡 新增：Retrofit 連線所需的套件
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
@@ -91,6 +97,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private Map<String, DiaryEntry> markerDataMap = new HashMap<>();
     private Marker lastSelectedMarker = null;
 
+    // 這是你原本用來管理地圖標記的內部類別 (維持不變)
     class DiaryEntry {
         LatLng location;
         String title;
@@ -513,6 +520,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         });
     }
 
+    // 💡 修改部分：在儲存至本地地圖的最後，呼叫上傳至雲端的方法
     private void saveTrace() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
@@ -544,6 +552,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 Toast.makeText(this, (lastSelectedMarker != null) ? "日記已更新！" : "紀錄成功！", Toast.LENGTH_SHORT).show();
                 updateStatistics();
                 updateDiaryList();
+
+                // 💡 在這裡觸發上傳到資料庫！
+                uploadDiaryToDatabase(title, selectedMood, diaryText, savePos, currentTime);
             }
         });
     }
@@ -567,6 +578,37 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     Toast.makeText(this, "太遠了！僅供閱讀。距離約 " + (int)results[0] + "m", Toast.LENGTH_SHORT).show();
                 }
                 if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
+    // 💡 新增：上傳到資料庫的專屬方法
+    private void uploadDiaryToDatabase(String title, String mood, String content, LatLng location, String time) {
+        // 使用 com.example.topics.DiaryEntry，避免跟你上面定義的內部類別 DiaryEntry 搞混
+        com.example.topics.DiaryEntry apiEntry = new com.example.topics.DiaryEntry(
+                "USER_ID", // 之後從登入資訊拿
+                title,
+                mood,
+                content,
+                location.latitude,
+                location.longitude,
+                time
+        );
+
+        // 將原本的 getApiService() 改為 getRetrofitInstance().create(ApiService.class)
+        RetrofitClient.getRetrofitInstance().create(ApiService.class).saveDiary(apiEntry).enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(MapActivity.this, "日誌保存成功！", Toast.LENGTH_SHORT).show();
+                } else {
+                    Log.e("API_SAVE", "資料儲存失敗，Error Code: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                Log.e("API_SAVE", "連線伺服器失敗: " + t.getMessage());
             }
         });
     }

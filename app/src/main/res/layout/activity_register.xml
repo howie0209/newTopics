@@ -6,14 +6,14 @@
     android:layout_height="match_parent"
     android:background="@color/dark_bg">
 
-    <!-- 💡 背景層：嵌入即時地圖 -->
+    <!-- 背景層：嵌入即時地圖 -->
     <fragment
         android:id="@+id/register_map_background"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- 💡 遮罩層：確保地圖不會干擾文字讀取 -->
+    <!-- 遮罩層 -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -52,8 +52,9 @@
                 android:textColor="@color/cyan_primary"
                 android:textStyle="bold" />
 
+            <!-- 修正後的 ID: et_register_username -->
             <EditText
-                android:id="@+id/reg_username"
+                android:id="@+id/et_register_username"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
@@ -72,8 +73,9 @@
                 android:textColor="@color/cyan_primary"
                 android:textStyle="bold" />
 
+            <!-- 修正後的 ID: et_register_email -->
             <EditText
-                android:id="@+id/reg_email"
+                android:id="@+id/et_register_email"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
@@ -93,8 +95,9 @@
                 android:textColor="@color/cyan_primary"
                 android:textStyle="bold" />
 
+            <!-- 修正後的 ID: et_register_password -->
             <EditText
-                android:id="@+id/reg_password"
+                android:id="@+id/et_register_password"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginTop="6dp"
