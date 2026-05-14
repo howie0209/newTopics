@@ -1,7 +1,5 @@
 package com.example.topics;
 
-import com.google.android.gms.maps.model.LatLng;
-
 public class DiaryEntry {
     public String userId;    // 關聯使用者
     public String title;     // 標題
@@ -18,6 +16,23 @@ public class DiaryEntry {
         this.content = content;
         this.latitude = latitude;
         this.longitude = longitude;
-        this.date = time; // 修正處：將傳入的 time 賦值給類別變數 date
+        this.date = time;
+    }
+
+    // 💡 補上這些 Getter 方法，MapActivity 才能讀取到資料
+    public double getLat() {
+        return latitude;
+    }
+
+    public double getLng() {
+        return longitude;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getMood() {
+        return mood;
     }
 }

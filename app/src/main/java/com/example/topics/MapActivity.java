@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import android.content.SharedPreferences;
 
 // 💡 新增：Retrofit 連線所需的套件
 import retrofit2.Call;
@@ -96,6 +97,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private Map<String, DiaryEntry> markerDataMap = new HashMap<>();
     private Marker lastSelectedMarker = null;
+
 
     // 這是你原本用來管理地圖標記的內部類別 (維持不變)
     class DiaryEntry {
@@ -489,6 +491,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
         }
+        loadDiariesFromServer();
 
         mMap.setOnMarkerClickListener(marker -> {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 15f));
@@ -519,6 +522,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             return true;
         });
     }
+
 
     // 💡 修改部分：在儲存至本地地圖的最後，呼叫上傳至雲端的方法
     private void saveTrace() {
@@ -584,9 +588,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     // 💡 新增：上傳到資料庫的專屬方法
     private void uploadDiaryToDatabase(String title, String mood, String content, LatLng location, String time) {
-        // 使用 com.example.topics.DiaryEntry，避免跟你上面定義的內部類別 DiaryEntry 搞混
+        // 1. 從 SharedPreferences 讀取登入時存下的真實 userId
+        SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
+        String currentUserId = prefs.getString("current_user_id", "anonymous");
+
+        // 2. 建立 API 用的 DiaryEntry 物件
+        // 💡 這裡明確指定使用 com.example.topics.DiaryEntry
         com.example.topics.DiaryEntry apiEntry = new com.example.topics.DiaryEntry(
-                "USER_ID", // 之後從登入資訊拿
+                currentUserId, // 💡 已將原本寫死的 "USER_ID" 改為動態讀取
                 title,
                 mood,
                 content,
@@ -595,20 +604,21 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 time
         );
 
-        // 將原本的 getApiService() 改為 getRetrofitInstance().create(ApiService.class)
-        RetrofitClient.getRetrofitInstance().create(ApiService.class).saveDiary(apiEntry).enqueue(new Callback<Void>() {
+        // 3. 送出請求 (修正 Callback 型態為 ResponseBody 以解決紅字錯誤)
+        RetrofitClient.getRetrofitInstance().create(ApiService.class).saveDiary(apiEntry).enqueue(new Callback<okhttp3.ResponseBody>() {
             @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
+            public void onResponse(Call<okhttp3.ResponseBody> call, Response<okhttp3.ResponseBody> response) {
                 if (response.isSuccessful()) {
-                    Toast.makeText(MapActivity.this, "日誌保存成功！", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MapActivity.this, "雲端同步成功！", Toast.LENGTH_SHORT).show();
                 } else {
-                    Log.e("API_SAVE", "資料儲存失敗，Error Code: " + response.code());
+                    Log.e("API_SAVE", "資料儲存失敗，錯誤碼: " + response.code());
                 }
             }
 
             @Override
-            public void onFailure(Call<Void> call, Throwable t) {
+            public void onFailure(Call<okhttp3.ResponseBody> call, Throwable t) {
                 Log.e("API_SAVE", "連線伺服器失敗: " + t.getMessage());
+                Toast.makeText(MapActivity.this, "雲端連線失敗，請檢查網路", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -726,5 +736,34 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 btnDelete = v.findViewById(R.id.btn_delete_img);
             }
         }
+
+    }
+    private void loadDiariesFromServer() {
+        SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
+        String currentUserId = prefs.getString("current_user_id", "anonymous");
+
+        RetrofitClient.getRetrofitInstance().create(ApiService.class)
+                .getUserDiaries(currentUserId).enqueue(new retrofit2.Callback<java.util.List<com.example.topics.DiaryEntry>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<java.util.List<com.example.topics.DiaryEntry>> call, retrofit2.Response<java.util.List<com.example.topics.DiaryEntry>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            java.util.List<com.example.topics.DiaryEntry> diaries = response.body();
+
+                            for (com.example.topics.DiaryEntry entry : diaries) {
+                                // 💡 使用正確檔案中的 getter 方法
+                                com.google.android.gms.maps.model.LatLng pos = new com.google.android.gms.maps.model.LatLng(entry.getLat(), entry.getLng());
+                                mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
+                                        .position(pos)
+                                        .title(entry.getTitle())
+                                        .snippet(entry.getMood()));
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(retrofit2.Call<java.util.List<com.example.topics.DiaryEntry>> call, Throwable t) {
+                        android.util.Log.e("MAP_LOAD", "讀取失敗: " + t.getMessage());
+                    }
+                });
     }
 }
