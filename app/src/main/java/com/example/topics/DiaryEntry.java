@@ -35,4 +35,7 @@ public class DiaryEntry {
     public String getMood() {
         return mood;
     }
+    public String getUserId() {
+        return userId; // 💡 確保 DiaryEntry 類別裡有宣告 userId 變數
+    }
 }

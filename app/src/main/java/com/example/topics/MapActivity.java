@@ -740,6 +740,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
     private void loadDiariesFromServer() {
         SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
+        // 💡 取得目前登入者的正確 ID (那串亂碼)
         String currentUserId = prefs.getString("current_user_id", "anonymous");
 
         RetrofitClient.getRetrofitInstance().create(ApiService.class)
@@ -747,27 +748,34 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     @Override
                     public void onResponse(retrofit2.Call<java.util.List<com.example.topics.DiaryEntry>> call, retrofit2.Response<java.util.List<com.example.topics.DiaryEntry>> response) {
                         if (response.isSuccessful() && response.body() != null) {
-                            // 1. 清除舊資料
-                            mMap.clear();
+                            // 1. 清除地圖上舊的圖標與快取資料
+                            if (mMap != null) {
+                                mMap.clear();
+                            }
                             markerDataMap.clear();
 
                             java.util.List<com.example.topics.DiaryEntry> diaries = response.body();
 
                             for (com.example.topics.DiaryEntry entry : diaries) {
+                                // 💡 關鍵改動：【App 端最後防線】
+                                // 檢查日記的 userId 欄位，如果不是目前登入者的 ID，就直接跳過不顯示
+                                if (entry.getUserId() != null && !entry.getUserId().equals(currentUserId)) {
+                                    continue;
+                                }
+
                                 com.google.android.gms.maps.model.LatLng pos = new com.google.android.gms.maps.model.LatLng(entry.getLat(), entry.getLng());
 
-                                // 2. 💡 修正：依照內部類別定義的參數順序傳入資料 (參考 image_18677b)
-                                // 參數順序：location, title, mood, intensity, text, time, images, isMine, visibility
+                                // 2. 💡 修正：維持你原本可運作的參數順序
                                 DiaryEntry internalEntry = new DiaryEntry(
-                                        pos,                // location
-                                        entry.getTitle(),   // title
-                                        entry.getMood(),    // mood
-                                        0,                  // intensity (預設)
-                                        entry.content,      // text (對接資料庫內容)
-                                        entry.date,         // time (對接資料庫日期)
-                                        null,               // images (預設)
-                                        true,               // isMine (預設)
-                                        0                   // visibility (預設)
+                                        pos,
+                                        entry.getTitle(),
+                                        entry.getMood(),
+                                        0,
+                                        entry.content,
+                                        entry.date,
+                                        null,
+                                        true,
+                                        0
                                 );
 
                                 com.google.android.gms.maps.model.Marker marker = mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
@@ -776,12 +784,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                         .snippet(entry.getMood()));
 
                                 if (marker != null) {
-                                    // 3. 存入 Map，確保點擊 Marker 與側邊清單能抓到 text 與 time
+                                    // 3. 存入 Map
                                     markerDataMap.put(marker.getId(), internalEntry);
                                 }
                             }
 
-                            // 4. 更新 UI 統計與清單
+                            // 4. 更新 UI
                             updateStatistics();
                             updateDiaryList();
                         }
