@@ -747,16 +747,43 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     @Override
                     public void onResponse(retrofit2.Call<java.util.List<com.example.topics.DiaryEntry>> call, retrofit2.Response<java.util.List<com.example.topics.DiaryEntry>> response) {
                         if (response.isSuccessful() && response.body() != null) {
+                            // 1. 清除舊資料
+                            mMap.clear();
+                            markerDataMap.clear();
+
                             java.util.List<com.example.topics.DiaryEntry> diaries = response.body();
 
                             for (com.example.topics.DiaryEntry entry : diaries) {
-                                // 💡 使用正確檔案中的 getter 方法
                                 com.google.android.gms.maps.model.LatLng pos = new com.google.android.gms.maps.model.LatLng(entry.getLat(), entry.getLng());
-                                mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
+
+                                // 2. 💡 修正：依照內部類別定義的參數順序傳入資料 (參考 image_18677b)
+                                // 參數順序：location, title, mood, intensity, text, time, images, isMine, visibility
+                                DiaryEntry internalEntry = new DiaryEntry(
+                                        pos,                // location
+                                        entry.getTitle(),   // title
+                                        entry.getMood(),    // mood
+                                        0,                  // intensity (預設)
+                                        entry.content,      // text (對接資料庫內容)
+                                        entry.date,         // time (對接資料庫日期)
+                                        null,               // images (預設)
+                                        true,               // isMine (預設)
+                                        0                   // visibility (預設)
+                                );
+
+                                com.google.android.gms.maps.model.Marker marker = mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
                                         .position(pos)
                                         .title(entry.getTitle())
                                         .snippet(entry.getMood()));
+
+                                if (marker != null) {
+                                    // 3. 存入 Map，確保點擊 Marker 與側邊清單能抓到 text 與 time
+                                    markerDataMap.put(marker.getId(), internalEntry);
+                                }
                             }
+
+                            // 4. 更新 UI 統計與清單
+                            updateStatistics();
+                            updateDiaryList();
                         }
                     }
 
