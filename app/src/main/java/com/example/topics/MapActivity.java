@@ -358,6 +358,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             etSearchFriend = navView.findViewById(R.id.et_search_friend);
             btnSearchUser = navView.findViewById(R.id.btn_search_user);
 
+            // 搜尋按鈕邏輯 (已存在)
+            if (btnSearchUser != null) {
+                btnSearchUser.setOnClickListener(v -> {
+                    String name = etSearchFriend.getText().toString().trim();
+                    if (!name.isEmpty()) performUserSearch(name);
+                });
+            }
+
             rvSentRequests = navView.findViewById(R.id.rv_sent_requests);
             rvReceivedRequests = navView.findViewById(R.id.rv_received_requests);
             rvFriendsList = navView.findViewById(R.id.rv_friends_list);
@@ -401,7 +409,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     }
                     if (layoutMyDiaryRoot != null) layoutMyDiaryRoot.setVisibility(View.GONE);
                     if (layoutFriendManagement != null) layoutFriendManagement.setVisibility(View.VISIBLE);
+
+                    // 💡 關鍵修正：點開好友分頁時，除了更新狀態，還要「抓取最新邀請清單」
                     updateFriendEmptyStates();
+                    loadFriendData();
                 });
             }
 
@@ -800,5 +811,255 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         android.util.Log.e("MAP_LOAD", "讀取失敗: " + t.getMessage());
                     }
                 });
+    }
+    // 💡 方法一：處理搜尋邏輯
+    private void performUserSearch(String targetName) {
+        RetrofitClient.getRetrofitInstance().create(ApiService.class)
+                .searchUser(targetName).enqueue(new retrofit2.Callback<User>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<User> call, retrofit2.Response<User> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            showAddFriendDialog(response.body());
+                        } else {
+                            android.widget.Toast.makeText(MapActivity.this, "找不到該使用者", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    @Override
+                    public void onFailure(retrofit2.Call<User> call, Throwable t) {}
+                });
+    }
+
+    // 💡 方法二：處理彈出對話框 (解決 image_09e703 的報錯)
+    private void showAddFriendDialog(User targetUser) {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("新增好友")
+                .setMessage("確定要發送邀請給 " + targetUser.getUsername() + " 嗎？")
+                .setPositiveButton("確定", (dialog, which) -> {
+                    sendFriendRequestToServer(targetUser.getUserId());
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    // 💡 方法三：處理發送邀請
+    private void sendFriendRequestToServer(String targetId) {
+        String currentUserId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
+        FriendRequest request = new FriendRequest(currentUserId, targetId);
+
+        RetrofitClient.getRetrofitInstance().create(ApiService.class)
+                .sendFriendRequest(request).enqueue(new retrofit2.Callback<okhttp3.ResponseBody>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<okhttp3.ResponseBody> call, retrofit2.Response<okhttp3.ResponseBody> response) {
+                        if (response.isSuccessful()) {
+                            android.widget.Toast.makeText(MapActivity.this, "邀請已送出！", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    @Override
+                    public void onFailure(retrofit2.Call<okhttp3.ResponseBody> call, Throwable t) {}
+                });
+    }
+
+
+
+    private void loadFriendData() {
+        String currentUserId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
+        ApiService api = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+
+        // 1. 抓取「已送出」邀請
+        api.getFriendList(currentUserId, "sent").enqueue(new retrofit2.Callback<java.util.List<FriendRecord>>() {
+            @Override
+            public void onResponse(retrofit2.Call<java.util.List<FriendRecord>> call, retrofit2.Response<java.util.List<FriendRecord>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.List<FriendRecord> list = response.body();
+                    // 為了確保不崩潰，加入 null 檢查。若日後綁定了 RecyclerView 即可正常顯示卡片。
+                    if (!list.isEmpty()) {
+                        if (tvEmptySent != null) tvEmptySent.setVisibility(android.view.View.GONE);
+                        // 假設你的 RecyclerView 變數命名為 rvSentRequests
+                        if (rvSentRequests != null) {
+                            rvSentRequests.setVisibility(android.view.View.VISIBLE);
+                            rvSentRequests.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(MapActivity.this));
+                            rvSentRequests.setAdapter(new FriendListAdapter(list, "sent"));
+                        }
+                    } else {
+                        if (tvEmptySent != null) {
+                            tvEmptySent.setVisibility(android.view.View.VISIBLE);
+                            tvEmptySent.setText("尚未送出好友邀請");
+                        }
+                        if (rvSentRequests != null) rvSentRequests.setVisibility(android.view.View.GONE);
+                    }
+                }
+            }
+            @Override
+            public void onFailure(retrofit2.Call<java.util.List<FriendRecord>> call, Throwable t) {
+                android.util.Log.e("API_ERROR", "載入已送出邀請失敗: " + t.getMessage());
+            }
+        });
+
+        // 2. 抓取「收到的邀請」
+        api.getFriendList(currentUserId, "received").enqueue(new retrofit2.Callback<java.util.List<FriendRecord>>() {
+            @Override
+            public void onResponse(retrofit2.Call<java.util.List<FriendRecord>> call, retrofit2.Response<java.util.List<FriendRecord>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.List<FriendRecord> list = response.body();
+                    if (!list.isEmpty()) {
+                        if (tvEmptyReceived != null) tvEmptyReceived.setVisibility(android.view.View.GONE);
+                        if (rvReceivedRequests != null) {
+                            rvReceivedRequests.setVisibility(android.view.View.VISIBLE);
+                            rvReceivedRequests.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(MapActivity.this));
+                            rvReceivedRequests.setAdapter(new FriendListAdapter(list, "received"));
+                        }
+                    } else {
+                        if (tvEmptyReceived != null) {
+                            tvEmptyReceived.setVisibility(android.view.View.VISIBLE);
+                            tvEmptyReceived.setText("尚未收到好友邀請");
+                        }
+                        if (rvReceivedRequests != null) rvReceivedRequests.setVisibility(android.view.View.GONE);
+                    }
+                }
+            }
+            @Override
+            public void onFailure(retrofit2.Call<java.util.List<FriendRecord>> call, Throwable t) {
+                android.util.Log.e("API_ERROR", "載入收到邀請失敗: " + t.getMessage());
+            }
+        });
+
+        // 3. 抓取「好友列表」
+        api.getFriendList(currentUserId, "accepted").enqueue(new retrofit2.Callback<java.util.List<FriendRecord>>() {
+            @Override
+            public void onResponse(retrofit2.Call<java.util.List<FriendRecord>> call, retrofit2.Response<java.util.List<FriendRecord>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    java.util.List<FriendRecord> list = response.body();
+                    if (!list.isEmpty()) {
+                        if (tvEmptyFriends != null) tvEmptyFriends.setVisibility(android.view.View.GONE);
+                        if (rvFriendsList != null) {
+                            rvFriendsList.setVisibility(android.view.View.VISIBLE);
+                            rvFriendsList.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(MapActivity.this));
+                            rvFriendsList.setAdapter(new FriendListAdapter(list, "accepted"));
+                        }
+                    } else {
+                        if (tvEmptyFriends != null) {
+                            tvEmptyFriends.setVisibility(android.view.View.VISIBLE);
+                            tvEmptyFriends.setText("還沒有好友，去搜尋吧");
+                        }
+                        if (rvFriendsList != null) rvFriendsList.setVisibility(android.view.View.GONE);
+                    }
+                }
+            }
+            @Override
+            public void onFailure(retrofit2.Call<java.util.List<FriendRecord>> call, Throwable t) {
+                android.util.Log.e("API_ERROR", "載入好友列表失敗: " + t.getMessage());
+            }
+        });
+    }
+
+// --- 💡 以下是為了搭配新版列表介面所需要的新增方法 ---
+
+    // 執行更新狀態 (例如接受邀請)
+    private void executeUpdateAction(String recordId, String status) {
+        ApiService api = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+        api.updateFriendStatus(recordId, status).enqueue(new retrofit2.Callback<okhttp3.ResponseBody>() {
+            @Override
+            public void onResponse(retrofit2.Call<okhttp3.ResponseBody> call, retrofit2.Response<okhttp3.ResponseBody> response) {
+                if (response.isSuccessful()) loadFriendData(); // 操作成功後自動重整畫面
+            }
+            @Override public void onFailure(retrofit2.Call<okhttp3.ResponseBody> call, Throwable t) {}
+        });
+    }
+
+    // 執行刪除操作 (收回、拒絕、刪除好友共用)
+    private void executeDeleteAction(String recordId) {
+        ApiService api = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+        api.removeFriend(recordId).enqueue(new retrofit2.Callback<okhttp3.ResponseBody>() {
+            @Override
+            public void onResponse(retrofit2.Call<okhttp3.ResponseBody> call, retrofit2.Response<okhttp3.ResponseBody> response) {
+                if (response.isSuccessful()) loadFriendData(); // 操作成功後自動重整畫面
+            }
+            @Override public void onFailure(retrofit2.Call<okhttp3.ResponseBody> call, Throwable t) {}
+        });
+    }
+
+    // 彈出好友個人資料視窗 (對應你的第三張截圖)
+    private void showFriendProfileDialog(FriendRecord record) {
+        // 先用原生深色對話框確保程式能跑，之後你可以換成客製化的 XML DialogFragment
+        new android.app.AlertDialog.Builder(MapActivity.this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(record.getTargetName() + " 的個人資料")
+                .setMessage("@" + record.getTargetName() + "\n\n加入日期：2026/05/18\n公開日記：0\n好友限定：0")
+                .setPositiveButton("查看地圖日記", null)
+                .setNegativeButton("刪除好友", (dialog, which) -> executeDeleteAction(record.getId()))
+                .show();
+    }
+
+    // 卡片列表配接器 (控制收回、接受、刪除等按鈕)
+    private class FriendListAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<FriendListAdapter.ViewHolder> {
+        private java.util.List<FriendRecord> data;
+        private String type;
+
+        public FriendListAdapter(java.util.List<FriendRecord> data, String type) {
+            this.data = data;
+            this.type = type;
+        }
+
+        @androidx.annotation.NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@androidx.annotation.NonNull android.view.ViewGroup parent, int viewType) {
+            // ⚠️ 這裡需要確保你有 res/layout/item_friend_card.xml
+            // 若目前還沒畫 XML，可以先用一個簡單的 TextView 取代避免崩潰，但若要像截圖那樣，需自己建立佈局。
+            android.view.View view = android.view.LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_friend_card, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@androidx.annotation.NonNull ViewHolder holder, int position) {
+            FriendRecord record = data.get(position);
+
+            // 💡 獲取當前登入的使用者 ID
+            String currentUserId = holder.itemView.getContext()
+                    .getSharedPreferences("UserData", android.content.Context.MODE_PRIVATE)
+                    .getString("current_user_id", "");
+
+            // 💡 終極根治法：名字由後端在傳輸時保證一定是「對方」的 username
+            String displayName = record.getTargetName();
+
+            // 💡 將參數完全不變地設定到 UI 上
+            holder.tvName.setText(displayName);
+
+            if ("sent".equals(type)) {
+                holder.tvStatus.setText("@" + displayName + " · 等待對方回覆");
+                holder.btnAction1.setText("收回");
+                holder.btnAction1.setOnClickListener(v -> executeDeleteAction(record.getId()));
+                holder.btnAction2.setVisibility(android.view.View.GONE);
+            } else if ("received".equals(type)) {
+                holder.tvStatus.setText("@" + displayName + " · 向您發送了邀請");
+                holder.btnAction1.setText("接受");
+                holder.btnAction2.setText("拒絕");
+                holder.btnAction2.setVisibility(android.view.View.VISIBLE);
+                holder.btnAction1.setOnClickListener(v -> executeUpdateAction(record.getId(), "accepted"));
+                holder.btnAction2.setOnClickListener(v -> executeDeleteAction(record.getId()));
+            } else if ("accepted".equals(type)) {
+                holder.tvStatus.setText("@" + displayName + " · 已是好友");
+                holder.btnAction1.setText("個人資料");
+                holder.btnAction2.setText("刪除");
+                holder.btnAction2.setVisibility(android.view.View.VISIBLE);
+                holder.btnAction1.setOnClickListener(v -> showFriendProfileDialog(record));
+                holder.btnAction2.setOnClickListener(v -> executeDeleteAction(record.getId()));
+            }
+        }
+
+        @Override
+        public int getItemCount() { return data.size(); }
+
+        class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
+            android.widget.TextView tvName, tvStatus;
+            android.widget.Button btnAction1, btnAction2;
+            public ViewHolder(@androidx.annotation.NonNull android.view.View itemView) {
+                super(itemView);
+                tvName = itemView.findViewById(R.id.tv_item_name);
+                tvStatus = itemView.findViewById(R.id.tv_item_status);
+                btnAction1 = itemView.findViewById(R.id.btn_item_action_1);
+                btnAction2 = itemView.findViewById(R.id.btn_item_action_2);
+            }
+        }
+
     }
 }
