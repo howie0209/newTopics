@@ -56,4 +56,36 @@ public interface ApiService {
     // 💡 9. 刪除好友 / 拒絕邀請 / 收回邀請
     @DELETE("friends/remove/{id}")
     Call<ResponseBody> removeFriend(@Path("id") String id);
+
+    // 💡 宣告 getUserProfile 方法，讓 Java 能透過 ID 跟後端索取資料
+    // 🛠️ 修正關鍵：移除原本多餘的 profile/，完美對齊後端的 app.get('/api/user/:id')
+    @retrofit2.http.GET("api/user/{id}")
+    retrofit2.Call<java.util.Map<String, String>> getUserProfile(@retrofit2.http.Path("id") String userId);
+
+    // 💡 1. 更新使用者名稱
+    @retrofit2.http.PUT("api/user/update/username/{id}")
+    retrofit2.Call<okhttp3.ResponseBody> updateUsername(
+            @retrofit2.http.Path("id") String userId,
+            @retrofit2.http.Body java.util.Map<String, String> body
+    );
+
+    // 💡 2. 更新 Email
+    @retrofit2.http.PUT("api/user/update/email/{id}")
+    retrofit2.Call<okhttp3.ResponseBody> updateEmail(
+            @retrofit2.http.Path("id") String userId,
+            @retrofit2.http.Body java.util.Map<String, String> body
+    );
+
+    // 💡 3. 更新密碼
+    @retrofit2.http.PUT("api/user/update/password/{id}")
+    retrofit2.Call<okhttp3.ResponseBody> updatePassword(
+            @retrofit2.http.Path("id") String userId,
+            @retrofit2.http.Body java.util.Map<String, String> body
+    );
+
+    // 💡 4. 刪除帳號
+    @retrofit2.http.DELETE("api/user/delete/{id}")
+    retrofit2.Call<okhttp3.ResponseBody> deleteAccount(
+            @retrofit2.http.Path("id") String userId
+    );
 }

@@ -423,18 +423,85 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             updateStatistics();
             updateDiaryList();
 
+            // 💡 採用相同的 findViewById 方式獲取新設計的底欄元件
             View btnLogout = navView.findViewById(R.id.btn_logout);
             if (btnLogout != null) {
+                // 1. 點擊登出按鈕：清除 SharedPreferences 登入快取並跳轉登入頁面
                 btnLogout.setOnClickListener(v -> {
+                    getSharedPreferences("UserData", MODE_PRIVATE).edit().clear().apply();
                     Intent intent = new Intent(this, LoginActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
                     finish();
                 });
             }
+
+            // 2. 個人檔案區域按鈕：點擊整塊區域直接跳轉至設定頁面
+            View btnProfileSettings = navView.findViewById(R.id.btn_profile_settings);
+            if (btnProfileSettings != null) {
+                btnProfileSettings.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, SettingsActivity.class);
+                    startActivity(intent);
+                });
+            }
+
+            // 從本地快取中抓取當前登入者的用戶 ID
+            // 從本地快取中抓取當前登入者的用戶 ID
+            String uId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
+
+            // 🔍 【診斷點 1】檢查本地有沒有抓到登入者的 ID
+            android.util.Log.d("DIARY_DEBUG", "本地抓到的用戶 ID 是: [" + uId + "]");
+
+            if (uId != null && !uId.isEmpty()) {
+
+                View targetContainer = navView.getHeaderCount() > 0 ? navView.getHeaderView(0) : navView;
+
+                android.widget.TextView tvBotAvatar = targetContainer.findViewById(R.id.tv_bottom_avatar);
+                android.widget.TextView tvBotName = targetContainer.findViewById(R.id.tv_bottom_name);
+                android.widget.TextView tvBotUser = targetContainer.findViewById(R.id.tv_bottom_username);
+
+                // 🔍 【診斷點 2】檢查 TextView 元件到底是不是 null
+                android.util.Log.d("DIARY_DEBUG", "tvBotName 是否為 null: " + (tvBotName == null));
+
+                ApiService apiService = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+
+                apiService.getUserProfile(uId).enqueue(new retrofit2.Callback<java.util.Map<String, String>>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<java.util.Map<String, String>> call, retrofit2.Response<java.util.Map<String, String>> response) {
+
+                        // 🔍 【診斷點 3】檢查 API 有沒有回應，狀態碼是多少
+                        android.util.Log.d("DIARY_DEBUG", "API 回應狀態碼: " + response.code());
+
+                        if (response.isSuccessful() && response.body() != null) {
+
+                            // 🔍 【診斷點 4】看清楚後端傳過來的 JSON 完整長相
+                            android.util.Log.d("DIARY_DEBUG", "後端傳過來的整包資料: " + response.body().toString());
+
+                            String name = response.body().get("username");
+
+                            if (name != null && !name.isEmpty()) {
+                                if (tvBotName != null) tvBotName.setText(name);
+                                if (tvBotUser != null) tvBotUser.setText("@" + name);
+                                if (tvBotAvatar != null) {
+                                    tvBotAvatar.setText(name.substring(0, 1));
+                                }
+                            } else {
+                                android.util.Log.e("DIARY_DEBUG", " 錯誤：抓到了資料，但裡面沒有 [username] 這個欄位！");
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(retrofit2.Call<java.util.Map<String, String>> call, Throwable t) {
+                        // 🔍 【診斷點 5】如果連線直接失敗（例如網路爆掉或網址錯了）
+                        android.util.Log.e("DIARY_DEBUG", "❌ API 連線完全失敗，原因: " + t.getMessage());
+                    }
+                });
+            } else {
+                android.util.Log.e("DIARY_DEBUG", "❌ 根本沒有進入 API 呼叫，因為本地快取的 current_user_id 是空的！");
+            }
         }
     }
-
     private void handleFilterClick(int filterType, Button btn) {
         if (currentFilter == filterType) {
             currentFilter = -1;
