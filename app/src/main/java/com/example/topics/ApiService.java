@@ -88,4 +88,6 @@ public interface ApiService {
     retrofit2.Call<okhttp3.ResponseBody> deleteAccount(
             @retrofit2.http.Path("id") String userId
     );
+    @GET("api/getDiaryStatistics")
+    Call<java.util.Map<String, Integer>> getDiaryStatistics(@Query("userId") String userId);
 }

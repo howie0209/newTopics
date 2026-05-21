@@ -548,14 +548,34 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private void updateStatistics() {
         if (tvCountMine != null && tvCountVisible != null) {
-            int mineCount = 0;
-            int friendsCount = 0;
-            for (DiaryEntry entry : markerDataMap.values()) {
-                if (entry.isMine) mineCount++;
-                else friendsCount++;
-            }
-            tvCountMine.setText(String.valueOf(mineCount));
-            tvCountVisible.setText(String.valueOf(friendsCount));
+            // 🎯 這裡直接從本機的 UserData 撈出你的 uId，保證 100% 能拿到
+            String uId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
+            if (uId == null || uId.isEmpty()) return;
+
+            ApiService apiService = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+            apiService.getDiaryStatistics(uId).enqueue(new retrofit2.Callback<java.util.Map<String, Integer>>() {
+                @Override
+                public void onResponse(retrofit2.Call<java.util.Map<String, Integer>> call, retrofit2.Response<java.util.Map<String, Integer>> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        // 🎯 從後端拿最新的統計數據
+                        Integer mineCount = response.body().get("myDiaryCount");
+                        Integer visibleCount = response.body().get("visibleMemoryCount");
+
+                        // 🎯 這裡完全沿用你原本的 tvCountMine 和 tvCountVisible 元件更新畫面
+                        if (mineCount != null) {
+                            tvCountMine.setText(String.valueOf(mineCount));
+                        }
+                        if (visibleCount != null) {
+                            tvCountVisible.setText(String.valueOf(visibleCount));
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(retrofit2.Call<java.util.Map<String, Integer>> call, Throwable t) {
+                    // 網路失敗防空處理
+                }
+            });
         }
     }
 
