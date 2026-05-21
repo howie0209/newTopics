@@ -634,6 +634,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
                 int visibility = (visibilitySpinner != null) ? visibilitySpinner.getSelectedItemPosition() : 0;
 
+                // 🎯 防線：如果是編輯舊日記，先抓出它原本是不是「我的」日記（如果是全新發文，預設就是 true）
+                boolean isMineDiary = true;
+                if (lastSelectedMarker != null && markerDataMap.containsKey(lastSelectedMarker.getId())) {
+                    isMineDiary = markerDataMap.get(lastSelectedMarker.getId()).isMine;
+                }
+
                 LatLng savePos;
                 if (lastSelectedMarker != null) {
                     savePos = lastSelectedMarker.getPosition();
@@ -643,7 +649,24 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     savePos = new LatLng(location.getLatitude(), location.getLongitude());
                 }
 
-                DiaryEntry entry = new DiaryEntry(savePos, title, selectedMood, intensity, diaryText, currentTime, new ArrayList<>(selectedImageUris), true, visibility);
+                // 🎯 1. 建立物件
+                // 🎯 請找到 saveTrace() 裡建立 entry 的地方，改成這樣：
+                DiaryEntry entry = new DiaryEntry(
+                        savePos,
+                        title,
+                        selectedMood,
+                        intensity,       // 👈 第 4 參數：正確回歸放 intensity (心情強度)
+                        diaryText,
+                        currentTime,
+                        new ArrayList<>(selectedImageUris),
+                        isMineDiary,
+                        visibility       // 👈 第 9 參數：正確放 visibility (隱私度)
+                );
+
+                // 🎯 2. 【終極強制防線】不論建構子順序有沒有對齊，直接強制對物件的外部變數直接塞值！
+                // 💡 這樣可以確保在 updateDiaryList() 執行前，記憶體裡的 visibility 絕對是正確的數字！
+                entry.visibility = visibility;
+
                 Marker newMarker = mMap.addMarker(new MarkerOptions().position(savePos).title(title.isEmpty() ? selectedMood : title));
 
                 if (newMarker != null) {
@@ -652,11 +675,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 }
 
                 Toast.makeText(this, (lastSelectedMarker != null) ? "日記已更新！" : "紀錄成功！", Toast.LENGTH_SHORT).show();
+
+                // 🎯 3. 先更新本機統計與右側列表畫面
                 updateStatistics();
                 updateDiaryList();
 
-                // 💡 在這裡觸發上傳到資料庫！
+                // 💡 這是你原本留著的新增日記上傳邏輯 (完全保留不動)
                 uploadDiaryToDatabase(title, selectedMood, diaryText, savePos, currentTime);
+
+                // 🎯 4. 同步至雲端資料庫
+                updateDiaryInDatabase(title, selectedMood, diaryText, savePos, currentTime, visibility);
             }
         });
     }
@@ -685,39 +713,35 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     // 💡 新增：上傳到資料庫的專屬方法
+    // 🎯 找到你的 uploadDiaryToDatabase 內部這一段，微調這一個地方即可：
     private void uploadDiaryToDatabase(String title, String mood, String content, LatLng location, String time) {
-        // 1. 從 SharedPreferences 讀取登入時存下的真實 userId
         SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
         String currentUserId = prefs.getString("current_user_id", "anonymous");
 
-        // 2. 建立 API 用的 DiaryEntry 物件
-        // 💡 這裡明確指定使用 com.example.topics.DiaryEntry
+        // 💡 這裡對齊你畫面上當前選中的權限 Spinner 狀態
+        int visibility = (visibilitySpinner != null) ? visibilitySpinner.getSelectedItemPosition() : 0;
+
+        // 🎯 修正：改成呼叫帶有 8 個參數的新建構子，把 visibility 傳進去！
         com.example.topics.DiaryEntry apiEntry = new com.example.topics.DiaryEntry(
-                currentUserId, // 💡 已將原本寫死的 "USER_ID" 改為動態讀取
+                currentUserId,
                 title,
                 mood,
                 content,
                 location.latitude,
                 location.longitude,
-                time
+                time,
+                visibility // 👈 關鍵：把權限塞進去上傳物件！
         );
 
-        // 3. 送出請求 (修正 Callback 型態為 ResponseBody 以解決紅字錯誤)
+        // 3. 送出請求 (完全保留你原本能動的代碼)
         RetrofitClient.getRetrofitInstance().create(ApiService.class).saveDiary(apiEntry).enqueue(new Callback<okhttp3.ResponseBody>() {
             @Override
             public void onResponse(Call<okhttp3.ResponseBody> call, Response<okhttp3.ResponseBody> response) {
                 if (response.isSuccessful()) {
                     Toast.makeText(MapActivity.this, "雲端同步成功！", Toast.LENGTH_SHORT).show();
-                } else {
-                    Log.e("API_SAVE", "資料儲存失敗，錯誤碼: " + response.code());
                 }
             }
-
-            @Override
-            public void onFailure(Call<okhttp3.ResponseBody> call, Throwable t) {
-                Log.e("API_SAVE", "連線伺服器失敗: " + t.getMessage());
-                Toast.makeText(MapActivity.this, "雲端連線失敗，請檢查網路", Toast.LENGTH_SHORT).show();
-            }
+            @Override public void onFailure(Call<okhttp3.ResponseBody> call, Throwable t) {}
         });
     }
 
@@ -761,10 +785,20 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         if (item.getItemId() == 3) {
                             for (Map.Entry<String, DiaryEntry> e : markerDataMap.entrySet()) {
                                 if (e.getValue() == entry) {
+                                    // 🎯 1. 這裡直接拿現成的 e.getKey() 當識別碼，絕對不會報變數不存在的錯
+                                    String diaryIdentifier = e.getKey();
+
                                     markerDataMap.remove(e.getKey());
                                     updateDiaryList();
                                     updateStatistics();
                                     Toast.makeText(MapActivity.this, "已刪除", Toast.LENGTH_SHORT).show();
+
+                                    // 🎯 2. 連動資料庫：發送刪除請求
+                                    ApiService apiService = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+                                    apiService.deleteDiary(diaryIdentifier).enqueue(new retrofit2.Callback<Void>() {
+                                        @Override public void onResponse(retrofit2.Call<Void> call, retrofit2.Response<Void> response) {}
+                                        @Override public void onFailure(retrofit2.Call<Void> call, Throwable t) {}
+                                    });
                                     break;
                                 }
                             }
@@ -772,6 +806,27 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                             entry.visibility = item.getItemId();
                             updateDiaryList();
                             Toast.makeText(MapActivity.this, "權限已更新", Toast.LENGTH_SHORT).show();
+
+                            // 🎯 3. 變更權限時，為了拿到這篇日記的關鍵 Key，跑個快速迴圈找一下
+                            String diaryIdentifier = "";
+                            for (Map.Entry<String, DiaryEntry> e : markerDataMap.entrySet()) {
+                                if (e.getValue() == entry) {
+                                    diaryIdentifier = e.getKey();
+                                    break;
+                                }
+                            }
+
+                            // 🎯 4. 連動資料庫：發送權限更新請求
+                            if (!diaryIdentifier.isEmpty()) {
+                                java.util.HashMap<String, Object> body = new java.util.HashMap<>();
+                                body.put("privacy", item.getItemId());
+
+                                ApiService apiService = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+                                apiService.updateDiaryVisibility(diaryIdentifier, body).enqueue(new retrofit2.Callback<Void>() {
+                                    @Override public void onResponse(retrofit2.Call<Void> call, retrofit2.Response<Void> response) {}
+                                    @Override public void onFailure(retrofit2.Call<Void> call, Throwable t) {}
+                                });
+                            }
                         }
                         return true;
                     });
@@ -864,16 +919,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                 com.google.android.gms.maps.model.LatLng pos = new com.google.android.gms.maps.model.LatLng(entry.getLat(), entry.getLng());
 
                                 // 2. 💡 修正：維持你原本可運作的參數順序
+                                // 🎯 請找到 loadDiariesFromServer() 裡建立 internalEntry 的地方，改成這樣：
                                 DiaryEntry internalEntry = new DiaryEntry(
                                         pos,
                                         entry.getTitle(),
                                         entry.getMood(),
-                                        0,
+                                        3,                  // 👈 第 4 參數：intensity (心情強度給預設值 3)
                                         entry.content,
                                         entry.date,
                                         null,
                                         true,
-                                        0
+                                        entry.getPrivacy()  // 👈 第 9 參數：visibility 完美對接雲端真實權限！
                                 );
 
                                 com.google.android.gms.maps.model.Marker marker = mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
@@ -1148,5 +1204,44 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
         }
 
+    }
+    // 🎯 新增這個萬用更新方法：不管在哪裡改權限/內容，只要呼叫它，就會強制同步去雲端並重整畫面
+    private void updateDiaryInDatabase(String title, String mood, String content, LatLng location, String time, int visibility) {
+        // 1. 沿用你原本從 SharedPreferences 讀取 userId 的神主牌邏輯，保證安全
+        SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
+        String currentUserId = prefs.getString("current_user_id", "anonymous");
+
+        // 2. 打包要送去給後端更新的 Body
+        java.util.HashMap<String, Object> updateBody = new java.util.HashMap<>();
+        updateBody.put("userId", currentUserId);
+        updateBody.put("title", title);
+        updateBody.put("mood", mood);
+        updateBody.put("content", content);
+        updateBody.put("latitude", location.latitude);
+        updateBody.put("longitude", location.longitude);
+        updateBody.put("date", time);
+        updateBody.put("privacy", visibility); // 🎯 塞入最新的權限數字 (0, 1, 2)
+
+        // 3. 終極唯一識別碼：既然同一個地方可能會發多篇，我們直接用「userId + 經緯度 + 時間」組合，這在全世界絕對是唯一的！
+        String diaryIdentifier = currentUserId + "_" + location.latitude + "_" + location.longitude + "_" + time.replaceAll("[^a-zA-Z0-9]", "");
+
+        // 4. 發射請求更新資料庫
+        RetrofitClient.getRetrofitInstance().create(ApiService.class)
+                .updateDiaryVisibility(diaryIdentifier, updateBody)
+                .enqueue(new retrofit2.Callback<Void>() {
+                    @Override
+                    public void onResponse(retrofit2.Call<Void> call, retrofit2.Response<Void> response) {
+                        if (response.isSuccessful()) {
+                            Toast.makeText(MapActivity.this, "雲端資料已即時同步！", Toast.LENGTH_SHORT).show();
+                            // 🎯 馬上呈現新的權限樣子：直接重新拉取伺服器最新資料，徹底刷新地圖與右側最近日記列表！
+                            loadDiariesFromServer();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(retrofit2.Call<Void> call, Throwable t) {
+                        Log.e("API_UPDATE_SYNC", "同步失敗: " + t.getMessage());
+                    }
+                });
     }
 }

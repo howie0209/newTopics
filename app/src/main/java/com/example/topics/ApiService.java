@@ -90,4 +90,11 @@ public interface ApiService {
     );
     @GET("api/getDiaryStatistics")
     Call<java.util.Map<String, Integer>> getDiaryStatistics(@Query("userId") String userId);
+    // 🎯 補上刪除日記的網路連動介面
+    @DELETE("api/deleteDiary/{id}")
+    Call<Void> deleteDiary(@Path("id") String diaryId);
+
+    // 🎯 補上修改日記權限的網路連動介面
+    @PUT("api/updateDiary/{id}")
+    Call<Void> updateDiaryVisibility(@Path("id") String diaryId, @Body java.util.HashMap<String, Object> body);
 }
