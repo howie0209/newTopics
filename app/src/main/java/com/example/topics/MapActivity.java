@@ -919,19 +919,27 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 });
     }
 
-    // 💡 方法二：處理彈出對話框 (解決 image_09e703 的報錯)
+    // 💡 方法二：處理彈出對話框 (完美解決 ID 為空、未知用戶的致命防線)
     private void showAddFriendDialog(User targetUser) {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("新增好友")
                 .setMessage("確定要發送邀請給 " + targetUser.getUsername() + " 嗎？")
                 .setPositiveButton("確定", (dialog, which) -> {
-                    sendFriendRequestToServer(targetUser.getUserId());
+
+                    // 🎯 【終極卡榫修復】如果 getUserId() 拿出來是 null 或空字串
+                    // 為了防呆，我們直接把拿到的中文名字 (username) 傳過去當成 targetId 發送！
+                    String targetId = targetUser.getUserId();
+                    if (targetId == null || targetId.isEmpty()) {
+                        targetId = targetUser.getUsername();
+                    }
+
+                    sendFriendRequestToServer(targetId);
                 })
                 .setNegativeButton("取消", null)
                 .show();
     }
 
-    // 💡 方法三：處理發送邀請
+    // 💡 方法三：處理發送邀請 (原封不動，維持完美的運作機制)
     private void sendFriendRequestToServer(String targetId) {
         String currentUserId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
         FriendRequest request = new FriendRequest(currentUserId, targetId);

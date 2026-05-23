@@ -31,13 +31,15 @@ public interface ApiService {
 
     // --- 以下是好友功能相關方法 ---
 
-    // 5. 搜尋使用者
-    @GET("users/search/{targetId}")
-    Call<User> searchUser(@Path("targetId") String targetId);
+    // 🎯 修正後：5. 搜尋使用者 (完全支援中文搜尋)
+// 路徑對齊 api/searchUser，並將參數改為 @Query，這在 Android 中會自動對中文進行安全編碼
+    @GET("api/searchUser")
+    Call<User> searchUser(@Query("username") String username);
 
-    // 6. 發送好友邀請
+    // 6. 發送好友邀請 (維持原樣)
     @POST("friends/request")
     Call<ResponseBody> sendFriendRequest(@Body FriendRequest request);
+
 
     // 7. 取得好友列表 (sent, received, accepted)
     @GET("friends/list")
