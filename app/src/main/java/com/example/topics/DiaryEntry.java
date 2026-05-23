@@ -4,6 +4,7 @@ package com.example.topics;
 import com.google.gson.annotations.SerializedName;
 
 public class DiaryEntry {
+    public String username; // 🎯 補上這行，讓 Adapter 可以直接讀取
     public String userId;    // 關聯使用者
     public String title;     // 標題
     public String mood;      // 心情
