@@ -21,7 +21,6 @@ public class DiaryPreviewController {
         public String imageUrl;
     }
 
-    private final Activity activity;
     private final View card;
     private final ImageView image;
     private final TextView title;
@@ -33,7 +32,6 @@ public class DiaryPreviewController {
     private final ImageButton close;
 
     public DiaryPreviewController(Activity activity) {
-        this.activity = activity;
         card = activity.findViewById(R.id.diary_preview_card);
         image = activity.findViewById(R.id.iv_preview_diary_image);
         title = activity.findViewById(R.id.tv_preview_title);
@@ -95,14 +93,14 @@ public class DiaryPreviewController {
         if (image != null) {
             if (data.imageUrl != null && !data.imageUrl.trim().isEmpty()) {
                 image.setVisibility(View.VISIBLE);
-                Glide.with(activity)
+                Glide.with(image)
                         .load(ImageUrlResolver.resolve(data.imageUrl))
                         .placeholder(R.drawable.bg_image_placeholder)
                         .error(R.drawable.bg_image_placeholder)
                         .centerCrop()
                         .into(image);
             } else {
-                Glide.with(activity).clear(image);
+                Glide.with(image).clear(image);
                 image.setVisibility(View.GONE);
             }
         }
