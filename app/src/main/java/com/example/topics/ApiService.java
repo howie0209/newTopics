@@ -1,102 +1,122 @@
 package com.example.topics;
 
+import com.example.topics.data.model.ApiResponse;
+import com.example.topics.data.model.AuthResponse;
+import com.example.topics.data.model.DiaryDetailData;
+import com.example.topics.data.model.DiaryDto;
+import com.example.topics.data.model.DiaryListData;
+import com.example.topics.data.model.EmptyResponse;
+import com.example.topics.data.model.FriendDto;
+import com.example.topics.data.model.FriendRequestBody;
+import com.example.topics.data.model.LoginRequest;
+import com.example.topics.data.model.RegisterRequest;
+import com.example.topics.data.model.ReactionUpdateData;
+import com.example.topics.data.model.SearchUserResult;
+import com.example.topics.data.model.UserDto;
+import java.util.HashMap;
 import java.util.List;
-import okhttp3.ResponseBody;
+import java.util.Map;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
-import retrofit2.http.GET;
-import retrofit2.http.POST;
-import retrofit2.http.PUT;
 import retrofit2.http.DELETE;
+import retrofit2.http.GET;
+import retrofit2.http.HTTP;
+import retrofit2.http.Multipart;
+import retrofit2.http.PATCH;
+import retrofit2.http.Part;
+import retrofit2.http.PartMap;
+import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 public interface ApiService {
 
-    // 1. 註冊 (不動)
-    @POST("api/register")
-    Call<ResponseBody> register(@Body User user);
+    @POST("auth/login")
+    Call<ApiResponse<AuthResponse>> login(@Body LoginRequest request);
 
-    // 2. 登入 (不動)
-    @POST("api/login")
-    Call<LoginResponse> login(@Body User user);
+    @POST("auth/register")
+    Call<ApiResponse<AuthResponse>> register(@Body RegisterRequest request);
 
-    // 3. 儲存日記 (不動)
-    @POST("api/saveDiary")
-    Call<ResponseBody> saveDiary(@Body DiaryEntry entry);
+    @GET("users/me")
+    Call<ApiResponse<UserDto>> getMe();
 
-    // 4. 讀取日記 (不動)
-    @GET("api/getDiaries")
-    Call<List<DiaryEntry>> getUserDiaries(@Query("userId") String userId);
+    @PATCH("users/me/name")
+    Call<ApiResponse<EmptyResponse>> updateName(@Body Map<String, String> body);
 
-    // --- 以下是好友功能相關方法 ---
+    @PATCH("users/me/email")
+    Call<ApiResponse<EmptyResponse>> updateEmail(@Body Map<String, String> body);
 
-    // 🎯 修正後：5. 搜尋使用者 (完全支援中文搜尋)
-// 路徑對齊 api/searchUser，並將參數改為 @Query，這在 Android 中會自動對中文進行安全編碼
-    @GET("api/searchUser")
-    Call<User> searchUser(@Query("username") String username);
+    @PATCH("users/me/password")
+    Call<ApiResponse<EmptyResponse>> updatePassword(@Body Map<String, String> body);
 
-    // 6. 發送好友邀請 (維持原樣)
+    @HTTP(method = "DELETE", path = "users/me", hasBody = true)
+    Call<ApiResponse<EmptyResponse>> deleteAccount(@Body Map<String, String> body);
+
+    @GET("users/search")
+    Call<ApiResponse<SearchUserResult>> searchUser(@Query("userCode") String userCode);
+
+    @GET("diaries")
+    Call<ApiResponse<DiaryListData>> getDiaries();
+
+    @GET("diaries")
+    Call<ApiResponse<DiaryListData>> getDiariesNearby(
+            @Query("lat") double lat,
+            @Query("lng") double lng,
+            @Query("radius") int radius
+    );
+
+    @Multipart
+    @POST("diaries")
+    Call<ApiResponse<DiaryDetailData>> createDiary(
+            @PartMap HashMap<String, RequestBody> fields,
+            @Part MultipartBody.Part image
+    );
+
+    @PATCH("diaries/{id}")
+    Call<ApiResponse<DiaryDetailData>> updateDiary(
+            @Path("id") String diaryId,
+            @Body HashMap<String, Object> body
+    );
+
+    @DELETE("diaries/{id}")
+    Call<ApiResponse<EmptyResponse>> deleteDiary(@Path("id") String diaryId);
+
+    @GET("diaries/explore")
+    Call<ApiResponse<List<DiaryDto>>> getExploreDiaries(
+            @Query("lat") double lat,
+            @Query("lng") double lng,
+            @Query("radius") int radius
+    );
+
+    @POST("diaries/{id}/react")
+    Call<ApiResponse<ReactionUpdateData>> reactToDiary(
+            @Path("id") String diaryId,
+            @Body Map<String, String> body
+    );
+
+    @GET("friends")
+    Call<ApiResponse<List<FriendDto>>> getFriends();
+
     @POST("friends/request")
-    Call<ResponseBody> sendFriendRequest(@Body FriendRequest request);
+    Call<ApiResponse<EmptyResponse>> sendFriendRequest(@Body FriendRequestBody request);
 
+    @GET("friends/requests")
+    Call<ApiResponse<List<FriendDto>>> getFriendRequests();
 
-    // 7. 取得好友列表 (sent, received, accepted)
-    @GET("friends/list")
-    Call<List<FriendRecord>> getFriendList(
-            @Query("userId") String userId,
-            @Query("status") String status
-    );
+    @GET("friends/requests/sent")
+    Call<ApiResponse<List<FriendDto>>> getSentFriendRequests();
 
-    // 💡 8. 更新好友狀態 (接受)
-    @PUT("friends/update/{id}")
-    Call<ResponseBody> updateFriendStatus(
-            @Path("id") String id,
-            @Query("status") String status
-    );
+    @DELETE("friends/requests/{requestId}/cancel")
+    Call<ApiResponse<EmptyResponse>> cancelFriendRequest(@Path("requestId") String requestId);
 
-    // 💡 9. 刪除好友 / 拒絕邀請 / 收回邀請
-    @DELETE("friends/remove/{id}")
-    Call<ResponseBody> removeFriend(@Path("id") String id);
+    @POST("friends/requests/{requestId}/accept")
+    Call<ApiResponse<EmptyResponse>> acceptFriendRequest(@Path("requestId") String requestId);
 
-    // 💡 宣告 getUserProfile 方法，讓 Java 能透過 ID 跟後端索取資料
-    // 🛠️ 修正關鍵：移除原本多餘的 profile/，完美對齊後端的 app.get('/api/user/:id')
-    @retrofit2.http.GET("api/user/{id}")
-    retrofit2.Call<java.util.Map<String, String>> getUserProfile(@retrofit2.http.Path("id") String userId);
+    @POST("friends/requests/{requestId}/reject")
+    Call<ApiResponse<EmptyResponse>> rejectFriendRequest(@Path("requestId") String requestId);
 
-    // 💡 1. 更新使用者名稱
-    @retrofit2.http.PUT("api/user/update/username/{id}")
-    retrofit2.Call<okhttp3.ResponseBody> updateUsername(
-            @retrofit2.http.Path("id") String userId,
-            @retrofit2.http.Body java.util.Map<String, String> body
-    );
-
-    // 💡 2. 更新 Email
-    @retrofit2.http.PUT("api/user/update/email/{id}")
-    retrofit2.Call<okhttp3.ResponseBody> updateEmail(
-            @retrofit2.http.Path("id") String userId,
-            @retrofit2.http.Body java.util.Map<String, String> body
-    );
-
-    // 💡 3. 更新密碼
-    @retrofit2.http.PUT("api/user/update/password/{id}")
-    retrofit2.Call<okhttp3.ResponseBody> updatePassword(
-            @retrofit2.http.Path("id") String userId,
-            @retrofit2.http.Body java.util.Map<String, String> body
-    );
-
-    // 💡 4. 刪除帳號
-    @retrofit2.http.DELETE("api/user/delete/{id}")
-    retrofit2.Call<okhttp3.ResponseBody> deleteAccount(
-            @retrofit2.http.Path("id") String userId
-    );
-    @GET("api/getDiaryStatistics")
-    Call<java.util.Map<String, Integer>> getDiaryStatistics(@Query("userId") String userId);
-    // 🎯 補上刪除日記的網路連動介面
-    @DELETE("api/deleteDiary/{id}")
-    Call<Void> deleteDiary(@Path("id") String diaryId);
-
-    // 🎯 補上修改日記權限的網路連動介面
-    @PUT("api/updateDiary/{id}")
-    Call<Void> updateDiaryVisibility(@Path("id") String diaryId, @Body java.util.HashMap<String, Object> body);
+    @DELETE("friends/{friendId}")
+    Call<ApiResponse<EmptyResponse>> deleteFriend(@Path("friendId") String friendId);
 }

@@ -18,6 +18,16 @@ public class FriendRecord {
     @SerializedName("status")
     private String status;
 
+    private String createdAt;
+
+    public FriendRecord(String id, String targetName, String targetId, String status, String createdAt) {
+        this.id = id;
+        this.targetName = targetName;
+        this.targetId = targetId;
+        this.status = status;
+        this.createdAt = createdAt;
+    }
+
     // Getter 方法
     public String getId() { return id; }
 
@@ -26,4 +36,6 @@ public class FriendRecord {
     public String getTargetId() { return targetId; }
 
     public String getStatus() { return status; }
+
+    public String getCreatedAt() { return createdAt; }
 }

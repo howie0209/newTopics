@@ -69,6 +69,27 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:text="使用者 ID"
+                android:textColor="@color/cyan_primary"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/et_register_user_code"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_edittext_dark"
+                android:hint="4-20 位英數、底線或連字號"
+                android:inputType="text"
+                android:paddingStart="12dp"
+                android:textColor="@color/white"
+                android:textColorHint="@color/hint_text"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:text="電子郵件"
                 android:textColor="@color/cyan_primary"
                 android:textStyle="bold" />

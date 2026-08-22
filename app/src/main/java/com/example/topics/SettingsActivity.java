@@ -1,8 +1,8 @@
 package com.example.topics;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -11,17 +11,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import java.util.HashMap;
-import java.util.Map;
-import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import com.example.topics.data.local.SessionManager;
+import com.example.topics.data.model.EmptyResponse;
+import com.example.topics.data.model.UserDto;
+import com.example.topics.data.repository.RepositoryCallback;
+import com.example.topics.data.repository.UserRepository;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    private String currentUserId;
-    private ApiService api;
+    private UserRepository userRepository;
+    private SessionManager sessionManager;
 
     // UI 元件
     private TextView tvUsername, tvEmail, tvJoinDate;
@@ -31,13 +30,10 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // TODO: 請確保你有建立 res/layout/activity_settings.xml
         setContentView(R.layout.activity_settings);
 
-        // 取得當前使用者 ID
-        SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
-        currentUserId = prefs.getString("current_user_id", "");
-        api = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+        userRepository = new UserRepository(this);
+        sessionManager = SessionManager.getInstance(this);
 
         initViews();
         loadUserProfile();
@@ -76,9 +72,7 @@ public class SettingsActivity extends AppCompatActivity {
         findViewById(R.id.btn_save_name).setOnClickListener(v -> {
             String newName = etNewName.getText().toString().trim();
             if(newName.isEmpty()) return;
-            Map<String, String> body = new HashMap<>();
-            body.put("newUsername", newName);
-            api.updateUsername(currentUserId, body).enqueue(new SimpleCallback("名稱更新成功", true));
+            userRepository.updateName(newName, new UserCallback("名稱更新成功"));
         });
 
         // 2. 更新 Email
@@ -88,10 +82,7 @@ public class SettingsActivity extends AppCompatActivity {
             if(pwd.isEmpty() || newEmail.isEmpty()) {
                 Toast.makeText(this, "請填寫完整資訊", Toast.LENGTH_SHORT).show(); return;
             }
-            Map<String, String> body = new HashMap<>();
-            body.put("currentPassword", pwd);
-            body.put("newEmail", newEmail);
-            api.updateEmail(currentUserId, body).enqueue(new SimpleCallback("Email 更新成功", true));
+            userRepository.updateEmail(newEmail, pwd, new UserCallback("Email 更新成功"));
         });
 
         // 3. 更新密碼
@@ -107,10 +98,18 @@ public class SettingsActivity extends AppCompatActivity {
                 Toast.makeText(this, "新密碼至少需 6 個字元", Toast.LENGTH_SHORT).show(); return;
             }
 
-            Map<String, String> body = new HashMap<>();
-            body.put("currentPassword", currentPwd);
-            body.put("newPassword", newPwd);
-            api.updatePassword(currentUserId, body).enqueue(new SimpleCallback("密碼更新成功，請重新登入", false));
+            userRepository.updatePassword(currentPwd, newPwd, confirmPwd, new RepositoryCallback<EmptyResponse>() {
+                @Override
+                public void onSuccess(EmptyResponse value) {
+                    Toast.makeText(SettingsActivity.this, "密碼更新成功，請重新登入", Toast.LENGTH_SHORT).show();
+                    logoutUser();
+                }
+
+                @Override
+                public void onError(String message) {
+                    Toast.makeText(SettingsActivity.this, message, Toast.LENGTH_SHORT).show();
+                }
+            });
         });
 
         // 4. 危險區域：刪除帳號
@@ -127,39 +126,60 @@ public class SettingsActivity extends AppCompatActivity {
 
     // 載入基本資料
     private void loadUserProfile() {
-        api.getUserProfile(currentUserId).enqueue(new Callback<Map<String, String>>() {
+        userRepository.getMe(new RepositoryCallback<UserDto>() {
             @Override
-            public void onResponse(Call<Map<String, String>> call, Response<Map<String, String>> response) {
-                if(response.isSuccessful() && response.body() != null) {
-                    tvUsername.setText(response.body().get("username"));
-                    tvEmail.setText(response.body().get("email"));
-
-                    // 處理 MongoDB 傳回的 ISO 時間格式 (擷取前面的日期)
-                    String dateStr = response.body().get("joinDate");
-                    if(dateStr != null && dateStr.length() >= 10) {
-                        tvJoinDate.setText(dateStr.substring(0, 10)); // 顯示 YYYY-MM-DD
-                    }
+            public void onSuccess(UserDto user) {
+                tvUsername.setText(user.getDisplayName());
+                tvEmail.setText(user.email == null ? "" : user.email);
+                if(user.createdAt != null && user.createdAt.length() >= 10) {
+                    tvJoinDate.setText(user.createdAt.substring(0, 10));
                 }
             }
-            @Override public void onFailure(Call<Map<String, String>> call, Throwable t) {}
+
+            @Override
+            public void onError(String message) {
+                Toast.makeText(SettingsActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
     // 刪除帳號的警告彈窗
     private void showDeleteAccountDialog() {
-        new AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        LinearLayout fields = new LinearLayout(this);
+        fields.setOrientation(LinearLayout.VERTICAL);
+        fields.setPadding(48, 8, 48, 0);
+
+        EditText passwordInput = new EditText(this);
+        passwordInput.setHint("目前密碼");
+        passwordInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        fields.addView(passwordInput);
+
+        EditText confirmInput = new EditText(this);
+        confirmInput.setHint("輸入 DELETE 確認");
+        fields.addView(confirmInput);
+
+        new AlertDialog.Builder(this)
                 .setTitle("⚠️ 警告：刪除帳號")
                 .setMessage("您確定要永久刪除帳號嗎？\n\n這將會清除您所有的地圖日記與好友紀錄，且無法復原！")
+                .setView(fields)
                 .setPositiveButton("確認刪除", (dialog, which) -> {
-                    api.deleteAccount(currentUserId).enqueue(new Callback<ResponseBody>() {
+                    String password = passwordInput.getText().toString();
+                    String confirm = confirmInput.getText().toString().trim();
+                    if (!"DELETE".equals(confirm)) {
+                        Toast.makeText(SettingsActivity.this, "請輸入 DELETE 確認刪除", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    userRepository.deleteAccount(password, new RepositoryCallback<EmptyResponse>() {
                         @Override
-                        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                            if(response.isSuccessful()) {
-                                Toast.makeText(SettingsActivity.this, "帳號已永久刪除", Toast.LENGTH_LONG).show();
-                                logoutUser();
-                            }
+                        public void onSuccess(EmptyResponse value) {
+                            Toast.makeText(SettingsActivity.this, "帳號已永久刪除", Toast.LENGTH_LONG).show();
+                            logoutUser();
                         }
-                        @Override public void onFailure(Call<ResponseBody> call, Throwable t) {}
+
+                        @Override
+                        public void onError(String message) {
+                            Toast.makeText(SettingsActivity.this, message, Toast.LENGTH_SHORT).show();
+                        }
                     });
                 })
                 .setNegativeButton("取消", null)
@@ -168,44 +188,31 @@ public class SettingsActivity extends AppCompatActivity {
 
     // 登出並返回登入頁
     private void logoutUser() {
-        getSharedPreferences("UserData", MODE_PRIVATE).edit().clear().apply();
+        sessionManager.clear();
         Intent intent = new Intent(this, LoginActivity.class); // 換成你的登入頁面類別
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
 
-    // 共用的 Retrofit 回呼處理類別
-    private class SimpleCallback implements Callback<ResponseBody> {
-        private String successMsg;
-        private boolean reloadData;
+    private class UserCallback implements RepositoryCallback<UserDto> {
+        private final String successMsg;
 
-        SimpleCallback(String successMsg, boolean reloadData) {
+        UserCallback(String successMsg) {
             this.successMsg = successMsg;
-            this.reloadData = reloadData;
+        }
+        @Override
+        public void onSuccess(UserDto value) {
+            Toast.makeText(SettingsActivity.this, successMsg, Toast.LENGTH_SHORT).show();
+            loadUserProfile();
+            layoutEditName.setVisibility(View.GONE);
+            layoutEditEmail.setVisibility(View.GONE);
+            layoutEditPassword.setVisibility(View.GONE);
+            etNewName.setText(""); etNewEmail.setText(""); etCurrentPwdForEmail.setText("");
         }
 
         @Override
-        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-            if(response.isSuccessful()) {
-                Toast.makeText(SettingsActivity.this, successMsg, Toast.LENGTH_SHORT).show();
-                if(reloadData) {
-                    loadUserProfile(); // 刷新畫面的基本資料
-                    // 操作成功後將所有面板收合
-                    layoutEditName.setVisibility(View.GONE);
-                    layoutEditEmail.setVisibility(View.GONE);
-                    layoutEditPassword.setVisibility(View.GONE);
-                    // 清空輸入框
-                    etNewName.setText(""); etNewEmail.setText(""); etCurrentPwdForEmail.setText("");
-                } else {
-                    // 通常是改密碼成功，強制登出重登
-                    logoutUser();
-                }
-            } else {
-                Toast.makeText(SettingsActivity.this, "操作失敗，請確認密碼是否正確", Toast.LENGTH_SHORT).show();
-            }
-        }
-        @Override public void onFailure(Call<ResponseBody> call, Throwable t) {
-            Toast.makeText(SettingsActivity.this, "網路錯誤", Toast.LENGTH_SHORT).show();
+        public void onError(String message) {
+            Toast.makeText(SettingsActivity.this, message, Toast.LENGTH_SHORT).show();
         }
     }
 }

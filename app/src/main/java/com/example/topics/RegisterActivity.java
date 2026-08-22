@@ -10,6 +10,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.topics.data.model.UserDto;
+import com.example.topics.data.repository.AuthRepository;
+import com.example.topics.data.repository.RepositoryCallback;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -17,19 +20,17 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 
-import okhttp3.ResponseBody; // 💡 修正編譯錯誤所需的 Import
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
 public class RegisterActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap mBackgroundMap;
+    private AuthRepository authRepository;
+    private Button btnRegister;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
+        authRepository = new AuthRepository(this);
 
         // 初始化背景地圖 fragment
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -40,9 +41,11 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
 
         // 綁定 UI 元件
         EditText etUsername = findViewById(R.id.et_register_username);
+        EditText etUserCode = findViewById(R.id.et_register_user_code);
         EditText etEmail = findViewById(R.id.et_register_email);
         EditText etPassword = findViewById(R.id.et_register_password);
-        Button btnRegister = findViewById(R.id.btn_register_submit);
+        EditText etConfirmPassword = findViewById(R.id.reg_confirm_password);
+        btnRegister = findViewById(R.id.btn_register_submit);
         TextView tvGoLogin = findViewById(R.id.tv_go_login);
 
         // 註冊按鈕點擊事件
@@ -51,40 +54,43 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
             public void onClick(View v) {
                 // 取得使用者輸入的字串
                 String name = etUsername.getText().toString().trim();
+                String userCode = etUserCode.getText().toString().trim().toLowerCase();
                 String mail = etEmail.getText().toString().trim();
                 String pwd = etPassword.getText().toString().trim();
+                String confirmPwd = etConfirmPassword.getText().toString().trim();
 
                 // 基本防呆檢查
-                if (name.isEmpty() || mail.isEmpty() || pwd.isEmpty()) {
+                if (name.isEmpty() || userCode.isEmpty() || mail.isEmpty() || pwd.isEmpty()) {
                     Toast.makeText(RegisterActivity.this, "請填寫完整資訊", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                // 建立 User 物件並發送 API 請求
-                User user = new User(name, pwd, mail);
-                ApiService apiService = RetrofitClient.getRetrofitInstance().create(ApiService.class);
+                if (!userCode.matches("^[a-zA-Z0-9_-]{4,20}$")) {
+                    Toast.makeText(RegisterActivity.this, "使用者 ID 需為 4-20 位英數、底線或連字號", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-                // 💡 修正處：將 Callback<Void> 改為 Callback<ResponseBody> 以解決紅字錯誤
-                apiService.register(user).enqueue(new Callback<ResponseBody>() {
+                if (!pwd.equals(confirmPwd)) {
+                    Toast.makeText(RegisterActivity.this, "兩次輸入的密碼不一致", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                setLoading(true);
+                authRepository.register(name, mail, pwd, userCode, new RepositoryCallback<UserDto>() {
                     @Override
-                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                        if (response.isSuccessful()) {
-                            Toast.makeText(RegisterActivity.this, "註冊成功！", Toast.LENGTH_SHORT).show();
-
-                            // 註冊成功後跳轉
-                            Intent intent = new Intent(RegisterActivity.this, VerifyActivity.class);
-                            startActivity(intent);
-                            finish();
-                        } else {
-                            // 💡 根據截圖邏輯，失敗時提示帳號可能已存在
-                            Toast.makeText(RegisterActivity.this, "註冊失敗：帳號可能已存在", Toast.LENGTH_SHORT).show();
-                        }
+                    public void onSuccess(UserDto user) {
+                        setLoading(false);
+                        Toast.makeText(RegisterActivity.this, "註冊成功！", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(RegisterActivity.this, MapActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
                     }
 
                     @Override
-                    public void onFailure(Call<ResponseBody> call, Throwable t) {
-                        Log.e("API_REG", "連線失敗: " + t.getMessage());
-                        Toast.makeText(RegisterActivity.this, "伺服器連線失敗", Toast.LENGTH_SHORT).show();
+                    public void onError(String message) {
+                        setLoading(false);
+                        Log.e("API_REG", "註冊失敗: " + message);
+                        Toast.makeText(RegisterActivity.this, message, Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -97,6 +103,13 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
                 finish();
             }
         });
+    }
+
+    private void setLoading(boolean loading) {
+        if (btnRegister != null) {
+            btnRegister.setEnabled(!loading);
+            btnRegister.setText(loading ? "註冊中..." : "註冊");
+        }
     }
 
     @Override

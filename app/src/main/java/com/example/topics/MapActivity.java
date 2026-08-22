@@ -34,6 +34,21 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.example.topics.data.local.SessionManager;
+import com.example.topics.data.mapper.DiaryMapper;
+import com.example.topics.data.mapper.DiaryUiModel;
+import com.example.topics.data.model.DiaryDto;
+import com.example.topics.data.model.EmptyResponse;
+import com.example.topics.data.model.ReactionUpdateData;
+import com.example.topics.data.model.SearchUserResult;
+import com.example.topics.data.model.UserDto;
+import com.example.topics.data.remote.ApiClient;
+import com.example.topics.data.remote.ImageUrlResolver;
+import com.example.topics.data.repository.DiaryRepository;
+import com.example.topics.data.repository.FriendRepository;
+import com.example.topics.data.repository.RepositoryCallback;
+import com.example.topics.data.repository.UserRepository;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -46,22 +61,20 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.navigation.NavigationView;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import android.content.SharedPreferences;
 
 // 💡 新增：Retrofit 連線所需的套件
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
+
+    private SessionManager sessionManager;
+    private DiaryRepository diaryRepository;
+    private UserRepository userRepository;
+    private FriendRepository friendRepository;
 
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
@@ -74,6 +87,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private SeekBar sbMoodIntensity;
     private TextView tvIntensityLabel;
     private ImageButton btnCloseDiary;
+    private ImageView ivDiaryRemoteImage;
+    private TextView tvDiaryMeta;
+    private Button btnSaveDiary, btnDeleteDiary, btnReactUnderstand, btnReactHug, btnReactRelate;
+    private View layoutReactions;
+    private boolean isDiaryRequestInFlight = false;
 
     private TextView tabMine, tabFriends;
     private TextView tvCountMine, tvCountVisible;
@@ -96,19 +114,28 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private List<Uri> selectedImageUris = new ArrayList<>();
 
     private Map<String, DiaryEntry> markerDataMap = new HashMap<>();
+    private Map<String, Marker> diaryMarkerMap = new HashMap<>();
+    private Map<String, String> markerDiaryIdMap = new HashMap<>();
     private Marker lastSelectedMarker = null;
     public String username; // 🎯 專門用來放名字
 
 
     // 這是你原本用來管理地圖標記的內部類別 (維持不變)
     class DiaryEntry {
+        String id;
         LatLng location;
         String title;
         String mood;
+        String authorName;
         int intensity;
         String text;
         String time;
         List<Uri> images;
+        String imageUrl = "";
+        String placeName = "";
+        String authorAvatar = "";
+        String userReaction = "";
+        boolean canEdit = false;
         boolean isMine;
         int visibility;
 
@@ -123,19 +150,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             this.time = time; this.images = images; this.isMine = isMine; this.visibility = visibility;
         }
 
-        public void updateReaction(int type) {
-            if (myReaction == 1) heartCount--;
-            else if (myReaction == 2) smileCount--;
-            else if (myReaction == 3) surpriseCount--;
-
-            if (myReaction == type) {
-                myReaction = 0;
-            } else {
-                myReaction = type;
-                if (type == 1) heartCount++;
-                else if (type == 2) smileCount++;
-                else if (type == 3) surpriseCount++;
-            }
+        public boolean hasRemoteImage() {
+            return imageUrl != null && !imageUrl.trim().isEmpty();
         }
     }
 
@@ -143,6 +159,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+
+        sessionManager = SessionManager.getInstance(this);
+        if (!sessionManager.hasToken()) {
+            redirectToLogin();
+            return;
+        }
+        diaryRepository = new DiaryRepository(this);
+        userRepository = new UserRepository(this);
+        friendRepository = new FriendRepository(this);
+        ApiClient.setAuthExpiredHandler(this::redirectToLogin);
 
         drawerLayout = findViewById(R.id.drawer_layout);
         ImageButton btnOpenDrawer = findViewById(R.id.btn_open_drawer);
@@ -165,6 +191,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         tvIntensityLabel = findViewById(R.id.tv_intensity_label);
         btnCloseDiary = findViewById(R.id.btn_close_diary);
         rvImagePreview = findViewById(R.id.rv_image_preview);
+        ivDiaryRemoteImage = findViewById(R.id.iv_diary_remote_image);
+        tvDiaryMeta = findViewById(R.id.tv_diary_meta);
+        btnSaveDiary = findViewById(R.id.btn_save);
+        btnDeleteDiary = findViewById(R.id.btn_delete_diary);
+        btnReactUnderstand = findViewById(R.id.btn_react_understand);
+        btnReactHug = findViewById(R.id.btn_react_hug);
+        btnReactRelate = findViewById(R.id.btn_react_relate);
+        layoutReactions = findViewById(R.id.layout_reactions);
 
         if (btnCloseDiary != null) {
             btnCloseDiary.setOnClickListener(v -> hideDiaryCard());
@@ -185,15 +219,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (fabAdd != null) {
             fabAdd.setOnClickListener(v -> {
                 lastSelectedMarker = null;
-                if (etDiaryTitle != null) { etDiaryTitle.setText(""); etDiaryTitle.setEnabled(true); }
-                if (diaryInput != null) { diaryInput.setText(""); diaryInput.setEnabled(true); }
-                if (sbMoodIntensity != null) { sbMoodIntensity.setProgress(3); sbMoodIntensity.setEnabled(true); }
-                if (moodSpinner != null) moodSpinner.setEnabled(true);
-                if (visibilitySpinner != null) { visibilitySpinner.setEnabled(true); visibilitySpinner.setSelection(0); }
+                clearDiaryForm();
+                setDiaryFieldsEnabled(true);
 
                 selectedImageUris.clear();
                 if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
                 if (rvImagePreview != null) rvImagePreview.setVisibility(View.GONE);
+                if (ivDiaryRemoteImage != null) ivDiaryRemoteImage.setVisibility(View.GONE);
+                if (tvDiaryMeta != null) tvDiaryMeta.setVisibility(View.GONE);
+                if (btnDeleteDiary != null) btnDeleteDiary.setVisibility(View.GONE);
+                if (layoutReactions != null) layoutReactions.setVisibility(View.GONE);
+                if (btnSaveDiary != null) btnSaveDiary.setVisibility(View.VISIBLE);
+                setDiaryLoading(false);
 
                 showDiaryCard("新增日記");
             });
@@ -211,8 +248,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 @Override
                 public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
                     if (diaryInput != null && !diaryInput.isEnabled()) return false;
-                    int from = viewHolder.getAdapterPosition();
-                    int to = target.getAdapterPosition();
+                    int from = viewHolder.getBindingAdapterPosition();
+                    int to = target.getBindingAdapterPosition();
+                    if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false;
                     Collections.swap(selectedImageUris, from, to);
                     imageAdapter.notifyItemMoved(from, to);
                     return true;
@@ -260,7 +298,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         View imagePicker = findViewById(R.id.card_image_picker);
         if (imagePicker != null) {
             imagePicker.setOnClickListener(v -> {
-                if (diaryInput != null && diaryInput.isEnabled()) {
+                if (getCurrentDiaryEntry() != null) {
+                    Toast.makeText(this, "圖片目前僅支援新增日記時上傳", Toast.LENGTH_SHORT).show();
+                } else if (diaryInput != null && diaryInput.isEnabled()) {
                     Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                     intent.setType("image/*");
                     intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
@@ -271,16 +311,26 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             });
         }
 
-        View btnSave = findViewById(R.id.btn_save);
-        if (btnSave != null) {
-            btnSave.setOnClickListener(v -> {
-                if (diaryInput != null && diaryInput.isEnabled()) {
-                    saveTrace();
-                    hideDiaryCard();
-                } else {
-                    Toast.makeText(this, "目前為閱讀模式，無法儲存修改", Toast.LENGTH_SHORT).show();
-                }
+        if (btnSaveDiary != null) {
+            btnSaveDiary.setOnClickListener(v -> {
+                if (diaryInput != null && diaryInput.isEnabled()) saveTrace();
+                else Toast.makeText(this, "目前為閱讀模式，無法儲存修改", Toast.LENGTH_SHORT).show();
             });
+        }
+        if (btnDeleteDiary != null) {
+            btnDeleteDiary.setOnClickListener(v -> confirmDeleteCurrentDiary());
+        }
+        if (btnReactUnderstand != null) {
+            btnReactUnderstand.setOnClickListener(v -> reactToCurrentDiary("understand"));
+        }
+        if (btnReactHug != null) {
+            btnReactHug.setOnClickListener(v -> reactToCurrentDiary("hug"));
+        }
+        if (btnReactRelate != null) {
+            btnReactRelate.setOnClickListener(v -> reactToCurrentDiary("relate"));
+        }
+        if (ivDiaryRemoteImage != null) {
+            ivDiaryRemoteImage.setOnClickListener(v -> openCurrentImagePreview());
         }
     }
 
@@ -296,6 +346,34 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private void hideDiaryCard() {
         if (diaryCardView != null) diaryCardView.setVisibility(View.GONE);
         if (mapBlurOverlay != null) mapBlurOverlay.setVisibility(View.GONE);
+    }
+
+    private void clearDiaryForm() {
+        if (etDiaryTitle != null) etDiaryTitle.setText("");
+        if (diaryInput != null) diaryInput.setText("");
+        if (sbMoodIntensity != null) sbMoodIntensity.setProgress(3);
+        if (moodSpinner != null) moodSpinner.setSelection(0);
+        if (visibilitySpinner != null) visibilitySpinner.setSelection(0);
+    }
+
+    private void setDiaryFieldsEnabled(boolean enabled) {
+        if (etDiaryTitle != null) etDiaryTitle.setEnabled(enabled);
+        if (diaryInput != null) diaryInput.setEnabled(enabled);
+        if (sbMoodIntensity != null) sbMoodIntensity.setEnabled(enabled);
+        if (moodSpinner != null) moodSpinner.setEnabled(enabled);
+        if (visibilitySpinner != null) visibilitySpinner.setEnabled(enabled);
+    }
+
+    private void setDiaryLoading(boolean loading) {
+        isDiaryRequestInFlight = loading;
+        if (btnSaveDiary != null) {
+            btnSaveDiary.setEnabled(!loading);
+            btnSaveDiary.setText(loading ? "同步中..." : "保存日記");
+        }
+        if (btnDeleteDiary != null) btnDeleteDiary.setEnabled(!loading);
+        if (btnReactUnderstand != null) btnReactUnderstand.setEnabled(!loading);
+        if (btnReactHug != null) btnReactHug.setEnabled(!loading);
+        if (btnReactRelate != null) btnReactRelate.setEnabled(!loading);
     }
 
     private void initToggleSwitch() {
@@ -325,21 +403,67 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
     }
 
-    private void deleteCurrentDiary() {
-        if (lastSelectedMarker != null) {
-            markerDataMap.remove(lastSelectedMarker.getId());
-            lastSelectedMarker.remove();
-            lastSelectedMarker = null;
-            if (etDiaryTitle != null) etDiaryTitle.setText("");
-            if (diaryInput != null) diaryInput.setText("");
-            selectedImageUris.clear();
-            if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
-            if (rvImagePreview != null) rvImagePreview.setVisibility(View.GONE);
-            hideDiaryCard();
-            Toast.makeText(this, "日記已刪除", Toast.LENGTH_SHORT).show();
-            updateDiaryList();
-            updateStatistics();
+    private void confirmDeleteCurrentDiary() {
+        DiaryEntry entry = getCurrentDiaryEntry();
+        if (entry == null || entry.id == null || entry.id.isEmpty()) return;
+        if (!entry.isMine) {
+            Toast.makeText(this, "只能刪除自己的日記", Toast.LENGTH_SHORT).show();
+            return;
         }
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("刪除日記")
+                .setMessage("確定要刪除這篇日記嗎？")
+                .setPositiveButton("刪除", (dialog, which) -> deleteDiaryFromBackend(entry))
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void deleteDiaryFromBackend(DiaryEntry entry) {
+        if (isDiaryRequestInFlight) return;
+        setDiaryLoading(true);
+        diaryRepository.deleteDiary(entry.id, new RepositoryCallback<EmptyResponse>() {
+            @Override
+            public void onSuccess(EmptyResponse value) {
+                setDiaryLoading(false);
+                removeDiaryMarker(entry.id);
+                lastSelectedMarker = null;
+                hideDiaryCard();
+                updateStatistics();
+                updateDiaryList();
+                Toast.makeText(MapActivity.this, "日記已刪除", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(String message) {
+                setDiaryLoading(false);
+                Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void reactToCurrentDiary(String type) {
+        DiaryEntry entry = getCurrentDiaryEntry();
+        if (entry == null || entry.id == null || entry.id.isEmpty()) return;
+        if (isDiaryRequestInFlight) return;
+        setDiaryLoading(true);
+        diaryRepository.reactToDiary(entry.id, type, new RepositoryCallback<ReactionUpdateData>() {
+            @Override
+            public void onSuccess(ReactionUpdateData data) {
+                setDiaryLoading(false);
+                entry.heartCount = data.getReactions().understand;
+                entry.smileCount = data.getReactions().hug;
+                entry.surpriseCount = data.getReactions().relate;
+                entry.userReaction = data.userReaction == null ? "" : data.userReaction;
+                bindReactionButtons(entry);
+                updateDiaryList();
+            }
+
+            @Override
+            public void onError(String message) {
+                setDiaryLoading(false);
+                Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void initNavigation() {
@@ -427,9 +551,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             // 💡 採用相同的 findViewById 方式獲取新設計的底欄元件
             View btnLogout = navView.findViewById(R.id.btn_logout);
             if (btnLogout != null) {
-                // 1. 點擊登出按鈕：清除 SharedPreferences 登入快取並跳轉登入頁面
                 btnLogout.setOnClickListener(v -> {
-                    getSharedPreferences("UserData", MODE_PRIVATE).edit().clear().apply();
+                    sessionManager.clear();
                     Intent intent = new Intent(this, LoginActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
@@ -446,62 +569,39 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 });
             }
 
-            // 從本地快取中抓取當前登入者的用戶 ID
-            // 從本地快取中抓取當前登入者的用戶 ID
-            String uId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
+            View targetContainer = navView.getHeaderCount() > 0 ? navView.getHeaderView(0) : navView;
+            android.widget.TextView tvBotAvatar = targetContainer.findViewById(R.id.tv_bottom_avatar);
+            android.widget.TextView tvBotName = targetContainer.findViewById(R.id.tv_bottom_name);
+            android.widget.TextView tvBotUser = targetContainer.findViewById(R.id.tv_bottom_username);
+            bindBottomProfile(sessionManager.getUser(), tvBotAvatar, tvBotName, tvBotUser);
+            userRepository.getMe(new RepositoryCallback<UserDto>() {
+                @Override
+                public void onSuccess(UserDto user) {
+                    bindBottomProfile(user, tvBotAvatar, tvBotName, tvBotUser);
+                }
 
-            // 🔍 【診斷點 1】檢查本地有沒有抓到登入者的 ID
-            android.util.Log.d("DIARY_DEBUG", "本地抓到的用戶 ID 是: [" + uId + "]");
-
-            if (uId != null && !uId.isEmpty()) {
-
-                View targetContainer = navView.getHeaderCount() > 0 ? navView.getHeaderView(0) : navView;
-
-                android.widget.TextView tvBotAvatar = targetContainer.findViewById(R.id.tv_bottom_avatar);
-                android.widget.TextView tvBotName = targetContainer.findViewById(R.id.tv_bottom_name);
-                android.widget.TextView tvBotUser = targetContainer.findViewById(R.id.tv_bottom_username);
-
-                // 🔍 【診斷點 2】檢查 TextView 元件到底是不是 null
-                android.util.Log.d("DIARY_DEBUG", "tvBotName 是否為 null: " + (tvBotName == null));
-
-                ApiService apiService = RetrofitClient.getRetrofitInstance().create(ApiService.class);
-
-                apiService.getUserProfile(uId).enqueue(new retrofit2.Callback<java.util.Map<String, String>>() {
-                    @Override
-                    public void onResponse(retrofit2.Call<java.util.Map<String, String>> call, retrofit2.Response<java.util.Map<String, String>> response) {
-
-                        // 🔍 【診斷點 3】檢查 API 有沒有回應，狀態碼是多少
-                        android.util.Log.d("DIARY_DEBUG", "API 回應狀態碼: " + response.code());
-
-                        if (response.isSuccessful() && response.body() != null) {
-
-                            // 🔍 【診斷點 4】看清楚後端傳過來的 JSON 完整長相
-                            android.util.Log.d("DIARY_DEBUG", "後端傳過來的整包資料: " + response.body().toString());
-
-                            String name = response.body().get("username");
-
-                            if (name != null && !name.isEmpty()) {
-                                if (tvBotName != null) tvBotName.setText(name);
-                                if (tvBotUser != null) tvBotUser.setText("@" + name);
-                                if (tvBotAvatar != null) {
-                                    tvBotAvatar.setText(name.substring(0, 1));
-                                }
-                            } else {
-                                android.util.Log.e("DIARY_DEBUG", " 錯誤：抓到了資料，但裡面沒有 [username] 這個欄位！");
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(retrofit2.Call<java.util.Map<String, String>> call, Throwable t) {
-                        // 🔍 【診斷點 5】如果連線直接失敗（例如網路爆掉或網址錯了）
-                        android.util.Log.e("DIARY_DEBUG", "❌ API 連線完全失敗，原因: " + t.getMessage());
-                    }
-                });
-            } else {
-                android.util.Log.e("DIARY_DEBUG", "❌ 根本沒有進入 API 呼叫，因為本地快取的 current_user_id 是空的！");
-            }
+                @Override
+                public void onError(String message) {
+                    android.util.Log.e("DIARY_DEBUG", "載入使用者失敗: " + message);
+                }
+            });
         }
+    }
+
+    private void bindBottomProfile(UserDto user, TextView avatar, TextView name, TextView code) {
+        if (user == null) return;
+        String displayName = user.getDisplayName();
+        if (name != null) name.setText(displayName);
+        if (code != null) code.setText("@" + user.getUserCode());
+        if (avatar != null && !displayName.isEmpty()) avatar.setText(displayName.substring(0, 1));
+    }
+
+    private void redirectToLogin() {
+        if (sessionManager != null) sessionManager.clear();
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
     private void handleFilterClick(int filterType, Button btn) {
         if (currentFilter == filterType) {
@@ -552,35 +652,139 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private void updateStatistics() {
         if (tvCountMine != null && tvCountVisible != null) {
-            // 🎯 這裡直接從本機的 UserData 撈出你的 uId，保證 100% 能拿到
-            String uId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
-            if (uId == null || uId.isEmpty()) return;
-
-            ApiService apiService = RetrofitClient.getRetrofitInstance().create(ApiService.class);
-            apiService.getDiaryStatistics(uId).enqueue(new retrofit2.Callback<java.util.Map<String, Integer>>() {
-                @Override
-                public void onResponse(retrofit2.Call<java.util.Map<String, Integer>> call, retrofit2.Response<java.util.Map<String, Integer>> response) {
-                    if (response.isSuccessful() && response.body() != null) {
-                        // 🎯 從後端拿最新的統計數據
-                        Integer mineCount = response.body().get("myDiaryCount");
-                        Integer visibleCount = response.body().get("visibleMemoryCount");
-
-                        // 🎯 這裡完全沿用你原本的 tvCountMine 和 tvCountVisible 元件更新畫面
-                        if (mineCount != null) {
-                            tvCountMine.setText(String.valueOf(mineCount));
-                        }
-                        if (visibleCount != null) {
-                            tvCountVisible.setText(String.valueOf(visibleCount));
-                        }
-                    }
-                }
-
-                @Override
-                public void onFailure(retrofit2.Call<java.util.Map<String, Integer>> call, Throwable t) {
-                    // 網路失敗防空處理
-                }
-            });
+            int mineCount = 0;
+            for (DiaryEntry entry : markerDataMap.values()) {
+                if (entry.isMine) mineCount++;
+            }
+            tvCountMine.setText(String.valueOf(mineCount));
+            tvCountVisible.setText(String.valueOf(markerDataMap.size()));
         }
+    }
+
+    private DiaryEntry getCurrentDiaryEntry() {
+        if (lastSelectedMarker == null) return null;
+        String diaryId = markerDiaryIdMap.get(lastSelectedMarker.getId());
+        if (diaryId == null) return markerDataMap.get(lastSelectedMarker.getId());
+        return markerDataMap.get(diaryId);
+    }
+
+    private void removeDiaryMarker(String diaryId) {
+        if (diaryId == null || diaryId.isEmpty()) return;
+        Marker marker = diaryMarkerMap.remove(diaryId);
+        if (marker != null) {
+            markerDiaryIdMap.remove(marker.getId());
+            marker.remove();
+        }
+        markerDataMap.remove(diaryId);
+    }
+
+    private void addOrUpdateDiaryMarker(DiaryEntry entry) {
+        if (entry == null || entry.id == null || entry.id.isEmpty() || mMap == null) return;
+        removeDiaryMarker(entry.id);
+        Marker marker = mMap.addMarker(new MarkerOptions()
+                .position(entry.location)
+                .title(entry.title == null || entry.title.isEmpty() ? entry.mood : entry.title)
+                .snippet(entry.mood));
+        if (marker != null) {
+            markerDataMap.put(entry.id, entry);
+            diaryMarkerMap.put(entry.id, marker);
+            markerDiaryIdMap.put(marker.getId(), entry.id);
+            lastSelectedMarker = marker;
+        }
+    }
+
+    private DiaryEntry buildEntryFromDto(DiaryDto diary) {
+        DiaryUiModel uiDiary = DiaryMapper.toUiModel(diary, sessionManager.getUserId());
+        if (uiDiary == null) return null;
+        DiaryEntry entry = new DiaryEntry(
+                new LatLng(uiDiary.lat, uiDiary.lng),
+                uiDiary.title,
+                DiaryMapper.moodLabel(uiDiary.moodType),
+                uiDiary.intensity,
+                uiDiary.text,
+                uiDiary.time,
+                new ArrayList<>(),
+                uiDiary.isMine,
+                uiDiary.visibility
+        );
+        entry.id = uiDiary.id;
+        entry.authorName = uiDiary.authorName;
+        entry.authorAvatar = uiDiary.authorAvatar;
+        entry.imageUrl = uiDiary.imageUrl;
+        entry.placeName = uiDiary.placeName;
+        entry.userReaction = uiDiary.userReaction;
+        entry.canEdit = uiDiary.canEdit;
+        entry.heartCount = uiDiary.understandCount;
+        entry.smileCount = uiDiary.hugCount;
+        entry.surpriseCount = uiDiary.relateCount;
+        return entry;
+    }
+
+    private void bindDiaryToSheet(DiaryEntry entry) {
+        if (entry == null) return;
+        if (etDiaryTitle != null) etDiaryTitle.setText(entry.title);
+        if (diaryInput != null) diaryInput.setText(entry.text);
+        if (sbMoodIntensity != null) sbMoodIntensity.setProgress(entry.intensity);
+        if (moodSpinner != null) {
+            for (int i = 0; i < moodSpinner.getCount(); i++) {
+                if (moodSpinner.getItemAtPosition(i).toString().contains(entry.mood)) {
+                    moodSpinner.setSelection(i);
+                    break;
+                }
+            }
+        }
+        if (visibilitySpinner != null) visibilitySpinner.setSelection(entry.visibility);
+
+        selectedImageUris.clear();
+        if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
+        if (rvImagePreview != null) rvImagePreview.setVisibility(View.GONE);
+
+        bindRemoteImage(entry);
+        bindDiaryMeta(entry);
+        bindReactionButtons(entry);
+        setDiaryFieldsEnabled(entry.isMine && entry.canEdit);
+        if (btnDeleteDiary != null) btnDeleteDiary.setVisibility(entry.isMine ? View.VISIBLE : View.GONE);
+        if (layoutReactions != null) layoutReactions.setVisibility(View.VISIBLE);
+        if (btnSaveDiary != null) btnSaveDiary.setVisibility(entry.isMine ? View.VISIBLE : View.GONE);
+    }
+
+    private void bindRemoteImage(DiaryEntry entry) {
+        if (ivDiaryRemoteImage == null) return;
+        if (entry.hasRemoteImage()) {
+            ivDiaryRemoteImage.setVisibility(View.VISIBLE);
+            Glide.with(this)
+                    .load(ImageUrlResolver.resolve(entry.imageUrl))
+                    .placeholder(R.drawable.bg_image_placeholder)
+                    .error(R.drawable.bg_image_placeholder)
+                    .centerCrop()
+                    .into(ivDiaryRemoteImage);
+        } else {
+            ivDiaryRemoteImage.setVisibility(View.GONE);
+            Glide.with(this).clear(ivDiaryRemoteImage);
+        }
+    }
+
+    private void bindDiaryMeta(DiaryEntry entry) {
+        if (tvDiaryMeta == null) return;
+        String author = entry.authorName == null || entry.authorName.isEmpty() ? "Adrift" : entry.authorName;
+        String place = entry.placeName == null || entry.placeName.isEmpty() ? "" : " · " + entry.placeName;
+        String visibility = entry.visibility == 0 ? "私人" : entry.visibility == 1 ? "朋友" : "公開";
+        tvDiaryMeta.setText("@" + author + place + " · " + visibility + " · " + formatDate(entry.time));
+        tvDiaryMeta.setVisibility(View.VISIBLE);
+    }
+
+    private void bindReactionButtons(DiaryEntry entry) {
+        if (btnReactUnderstand != null) btnReactUnderstand.setText(("understand".equals(entry.userReaction) ? "✓ " : "") + "懂 " + entry.heartCount);
+        if (btnReactHug != null) btnReactHug.setText(("hug".equals(entry.userReaction) ? "✓ " : "") + "抱 " + entry.smileCount);
+        if (btnReactRelate != null) btnReactRelate.setText(("relate".equals(entry.userReaction) ? "✓ " : "") + "共鳴 " + entry.surpriseCount);
+    }
+
+    private void openCurrentImagePreview() {
+        DiaryEntry entry = getCurrentDiaryEntry();
+        if (entry == null || !entry.hasRemoteImage()) return;
+        Intent intent = new Intent(this, ImagePreviewActivity.class);
+        intent.putExtra(ImagePreviewActivity.EXTRA_IMAGE_URL, entry.imageUrl);
+        startActivity(intent);
     }
 
     @Override
@@ -599,29 +803,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         mMap.setOnMarkerClickListener(marker -> {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 15f));
-            showDiaryCard("編輯日記");
             lastSelectedMarker = marker;
-            DiaryEntry entry = markerDataMap.get(marker.getId());
+            DiaryEntry entry = getCurrentDiaryEntry();
             if (entry != null) {
-                if (etDiaryTitle != null) etDiaryTitle.setText(entry.title);
-                if (diaryInput != null) diaryInput.setText(entry.text);
-                if (sbMoodIntensity != null) sbMoodIntensity.setProgress(entry.intensity);
-                if (moodSpinner != null) {
-                    for (int i = 0; i < moodSpinner.getCount(); i++) {
-                        if (moodSpinner.getItemAtPosition(i).toString().equals(entry.mood)) {
-                            moodSpinner.setSelection(i);
-                            break;
-                        }
-                    }
-                }
-                if (visibilitySpinner != null) visibilitySpinner.setSelection(entry.visibility);
-
-                selectedImageUris.clear();
-                if (entry.images != null) selectedImageUris.addAll(entry.images);
-                if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
-                if (rvImagePreview != null) rvImagePreview.setVisibility(selectedImageUris.isEmpty() ? View.GONE : View.VISIBLE);
-
-                checkDistanceAndEdit(marker);
+                showDiaryCard(entry.isMine && entry.canEdit ? "編輯日記" : "閱讀日記");
+                bindDiaryToSheet(entry);
             }
             return true;
         });
@@ -629,192 +815,136 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     // 🎯 從雲端同步加載所有你看得到（包含好友、公開）的日記
     private void loadDiariesFromServer() {
-        SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
-        // 💡 取得目前登入者的正確 ID
-        String currentUserId = prefs.getString("current_user_id", "anonymous");
-
-        RetrofitClient.getRetrofitInstance().create(ApiService.class)
-                .getUserDiaries(currentUserId).enqueue(new retrofit2.Callback<java.util.List<com.example.topics.DiaryEntry>>() {
-                    @Override
-                    public void onResponse(retrofit2.Call<java.util.List<com.example.topics.DiaryEntry>> call, retrofit2.Response<java.util.List<com.example.topics.DiaryEntry>> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            // 1. 清除地圖上舊的圖標與快取資料
-                            if (mMap != null) {
-                                mMap.clear();
-                            }
-                            markerDataMap.clear();
-
-                            java.util.List<com.example.topics.DiaryEntry> diaries = response.body();
-
-                            for (com.example.topics.DiaryEntry entry : diaries) {
-
-                                // 💡 關鍵更動：移除原本強制 return/continue 掉非目前用戶日記的防火牆
-                                // 讓後端撈出來的好友日記 (privacy 1) 與大眾公開日記 (privacy 2) 順利放行！
-
-                                com.google.android.gms.maps.model.LatLng pos = new com.google.android.gms.maps.model.LatLng(entry.getLat(), entry.getLng());
-
-                                // 💡 核心更動：動態判斷此日記是否屬於目前登入的使用者
-                                boolean isMineDiary = entry.getUserId() != null && entry.getUserId().equals(currentUserId);
-
-                                // 💡 修正：嚴格對齊你本地 DiaryEntry 類別的 9 個參數建構子順序
-                                DiaryEntry internalEntry = new DiaryEntry(
-                                        pos,
-                                        entry.getTitle(),
-                                        entry.getMood(),
-                                        3,                  // 4. intensity (心情強度，預設給 3)
-                                        entry.content,      // 5. content
-                                        entry.date,         // 6. date
-                                        null,               // 7. images
-                                        isMineDiary,        // 8. isMine (帶入動態比對身分的結果！)
-                                        entry.getPrivacy()  // 9. visibility (完美對接雲端真實權限！)
-                                );
-
-                                com.google.android.gms.maps.model.Marker marker = mMap.addMarker(new com.google.android.gms.maps.model.MarkerOptions()
-                                        .position(pos)
-                                        .title(entry.getTitle())
-                                        .snippet(entry.getMood()));
-
-                                if (marker != null) {
-                                    // 3. 存入 Map
-                                    markerDataMap.put(marker.getId(), internalEntry);
-                                }
-                            }
-
-                            // 4. 更新 UI 列表與統計數據
-                            updateStatistics();
-                            updateDiaryList();
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(retrofit2.Call<java.util.List<com.example.topics.DiaryEntry>> call, Throwable t) {
-                        android.util.Log.e("MAP_LOAD", "讀取失敗: " + t.getMessage());
-                    }
-                });
-    }
-
-
-    // 💡 修改部分：在儲存至本地地圖的最後，呼叫上傳至雲端的方法
-    private void saveTrace() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
-        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-            if (location != null) {
-                String title = (etDiaryTitle != null) ? etDiaryTitle.getText().toString() : "";
-                String selectedMood = (moodSpinner != null) ? moodSpinner.getSelectedItem().toString() : "";
-                int intensity = (sbMoodIntensity != null) ? sbMoodIntensity.getProgress() : 3;
-                String diaryText = (diaryInput != null) ? diaryInput.getText().toString() : "";
-                String currentTime = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
-                int visibility = (visibilitySpinner != null) ? visibilitySpinner.getSelectedItemPosition() : 0;
-
-                // 🎯 防線：如果是編輯舊日記，先抓出它原本是不是「我的」日記（如果是全新發文，預設就是 true）
-                boolean isMineDiary = true;
-                if (lastSelectedMarker != null && markerDataMap.containsKey(lastSelectedMarker.getId())) {
-                    isMineDiary = markerDataMap.get(lastSelectedMarker.getId()).isMine;
+        diaryRepository.getDiaries(new RepositoryCallback<List<DiaryDto>>() {
+            @Override
+            public void onSuccess(List<DiaryDto> diaries) {
+                if (mMap != null) {
+                    mMap.clear();
                 }
+                markerDataMap.clear();
+                diaryMarkerMap.clear();
+                markerDiaryIdMap.clear();
 
-                LatLng savePos;
-                if (lastSelectedMarker != null) {
-                    savePos = lastSelectedMarker.getPosition();
-                    markerDataMap.remove(lastSelectedMarker.getId());
-                    lastSelectedMarker.remove();
-                } else {
-                    savePos = new LatLng(location.getLatitude(), location.getLongitude());
+                for (DiaryDto diary : diaries) {
+                    DiaryEntry internalEntry = buildEntryFromDto(diary);
+                    if (internalEntry != null) addOrUpdateDiaryMarker(internalEntry);
                 }
+                lastSelectedMarker = null;
 
-                // 🎯 1. 建立物件
-                // 🎯 請找到 saveTrace() 裡建立 entry 的地方，改成這樣：
-                DiaryEntry entry = new DiaryEntry(
-                        savePos,
-                        title,
-                        selectedMood,
-                        intensity,       // 👈 第 4 參數：正確回歸放 intensity (心情強度)
-                        diaryText,
-                        currentTime,
-                        new ArrayList<>(selectedImageUris),
-                        isMineDiary,
-                        visibility       // 👈 第 9 參數：正確放 visibility (隱私度)
-                );
-
-                // 🎯 2. 【終極強制防線】不論建構子順序有沒有對齊，直接強制對物件的外部變數直接塞值！
-                // 💡 這樣可以確保在 updateDiaryList() 執行前，記憶體裡的 visibility 絕對是正確的數字！
-                entry.visibility = visibility;
-
-                Marker newMarker = mMap.addMarker(new MarkerOptions().position(savePos).title(title.isEmpty() ? selectedMood : title));
-
-                if (newMarker != null) {
-                    markerDataMap.put(newMarker.getId(), entry);
-                    lastSelectedMarker = newMarker;
-                }
-
-                Toast.makeText(this, (lastSelectedMarker != null) ? "日記已更新！" : "紀錄成功！", Toast.LENGTH_SHORT).show();
-
-                // 🎯 3. 先更新本機統計與右側列表畫面
                 updateStatistics();
                 updateDiaryList();
+            }
 
-                // 💡 這是你原本留著的新增日記上傳邏輯 (完全保留不動)
-                uploadDiaryToDatabase(title, selectedMood, diaryText, savePos, currentTime);
-
-                // 🎯 4. 同步至雲端資料庫
-                updateDiaryInDatabase(title, selectedMood, diaryText, savePos, currentTime, visibility);
+            @Override
+            public void onError(String message) {
+                android.util.Log.e("MAP_LOAD", "讀取失敗: " + message);
+                Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void checkDistanceAndEdit(Marker marker) {
+
+    private void saveTrace() {
+        if (isDiaryRequestInFlight) return;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
             if (location != null) {
-                float[] results = new float[1];
-                Location.distanceBetween(location.getLatitude(), location.getLongitude(),
-                        marker.getPosition().latitude, marker.getPosition().longitude, results);
-
-                boolean canEdit = results[0] <= 50;
-                if (etDiaryTitle != null) etDiaryTitle.setEnabled(canEdit);
-                if (diaryInput != null) diaryInput.setEnabled(canEdit);
-                if (sbMoodIntensity != null) sbMoodIntensity.setEnabled(canEdit);
-                if (moodSpinner != null) moodSpinner.setEnabled(canEdit);
-                if (visibilitySpinner != null) visibilitySpinner.setEnabled(canEdit);
-
-                if (!canEdit) {
-                    Toast.makeText(this, "太遠了！僅供閱讀。距離約 " + (int)results[0] + "m", Toast.LENGTH_SHORT).show();
+                String title = (etDiaryTitle != null) ? etDiaryTitle.getText().toString().trim() : "";
+                String selectedMood = (moodSpinner != null) ? moodSpinner.getSelectedItem().toString() : "";
+                int intensity = (sbMoodIntensity != null) ? sbMoodIntensity.getProgress() : 3;
+                String diaryText = (diaryInput != null) ? diaryInput.getText().toString().trim() : "";
+                int visibility = (visibilitySpinner != null) ? visibilitySpinner.getSelectedItemPosition() : 0;
+                if (title.isEmpty() || diaryText.isEmpty()) {
+                    Toast.makeText(this, "請填寫標題與文字", Toast.LENGTH_SHORT).show();
+                    return;
                 }
-                if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
+
+                DiaryEntry existing = getCurrentDiaryEntry();
+                if (existing != null && existing.id != null && !existing.id.isEmpty()) {
+                    updateDiaryOnBackend(existing, title, selectedMood, intensity, diaryText, visibility, location);
+                } else {
+                    LatLng savePos = new LatLng(location.getLatitude(), location.getLongitude());
+                    createDiaryOnBackend(title, selectedMood, intensity, diaryText, visibility, savePos);
+                }
+            } else {
+                Toast.makeText(this, "目前無法取得定位，請稍後再試", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    // 💡 新增：上傳到資料庫的專屬方法
-    // 🎯 找到你的 uploadDiaryToDatabase 內部這一段，微調這一個地方即可：
-    private void uploadDiaryToDatabase(String title, String mood, String content, LatLng location, String time) {
-        SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
-        String currentUserId = prefs.getString("current_user_id", "anonymous");
-
-        // 💡 這裡對齊你畫面上當前選中的權限 Spinner 狀態
-        int visibility = (visibilitySpinner != null) ? visibilitySpinner.getSelectedItemPosition() : 0;
-
-        // 🎯 修正：改成呼叫帶有 8 個參數的新建構子，把 visibility 傳進去！
-        com.example.topics.DiaryEntry apiEntry = new com.example.topics.DiaryEntry(
-                currentUserId,
+    private void createDiaryOnBackend(String title, String mood, int intensity, String content, int visibility, LatLng location) {
+        setDiaryLoading(true);
+        Uri imageUri = selectedImageUris.isEmpty() ? null : selectedImageUris.get(0);
+        diaryRepository.createDiary(
                 title,
-                mood,
                 content,
+                DiaryMapper.moodApiValueFromSpinner(mood),
+                intensity,
+                DiaryMapper.visibilityApiValue(visibility),
                 location.latitude,
                 location.longitude,
-                time,
-                visibility // 👈 關鍵：把權限塞進去上傳物件！
-        );
+                "",
+                imageUri,
+                new RepositoryCallback<DiaryDto>() {
+                    @Override
+                    public void onSuccess(DiaryDto diary) {
+                        setDiaryLoading(false);
+                        DiaryEntry entry = buildEntryFromDto(diary);
+                        if (entry != null) addOrUpdateDiaryMarker(entry);
+                        selectedImageUris.clear();
+                        if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
+                        hideDiaryCard();
+                        updateStatistics();
+                        updateDiaryList();
+                        Toast.makeText(MapActivity.this, "日記已同步", Toast.LENGTH_SHORT).show();
+                    }
 
-        // 3. 送出請求 (完全保留你原本能動的代碼)
-        RetrofitClient.getRetrofitInstance().create(ApiService.class).saveDiary(apiEntry).enqueue(new Callback<okhttp3.ResponseBody>() {
-            @Override
-            public void onResponse(Call<okhttp3.ResponseBody> call, Response<okhttp3.ResponseBody> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(MapActivity.this, "雲端同步成功！", Toast.LENGTH_SHORT).show();
+                    @Override
+                    public void onError(String message) {
+                        setDiaryLoading(false);
+                        Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
+                    }
                 }
-            }
-            @Override public void onFailure(Call<okhttp3.ResponseBody> call, Throwable t) {}
-        });
+        );
+    }
+
+    private void updateDiaryOnBackend(DiaryEntry existing, String title, String mood, int intensity, String content, int visibility, Location location) {
+        if (!existing.isMine) {
+            Toast.makeText(this, "只能編輯自己的日記", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        setDiaryLoading(true);
+        diaryRepository.updateDiary(
+                existing.id,
+                title,
+                content,
+                DiaryMapper.moodApiValueFromSpinner(mood),
+                intensity,
+                DiaryMapper.visibilityApiValue(visibility),
+                location.getLatitude(),
+                location.getLongitude(),
+                new RepositoryCallback<DiaryDto>() {
+                    @Override
+                    public void onSuccess(DiaryDto diary) {
+                        setDiaryLoading(false);
+                        DiaryEntry entry = buildEntryFromDto(diary);
+                        if (entry != null) {
+                            addOrUpdateDiaryMarker(entry);
+                            bindDiaryToSheet(entry);
+                        }
+                        hideDiaryCard();
+                        updateStatistics();
+                        updateDiaryList();
+                        Toast.makeText(MapActivity.this, "日記已更新", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        setDiaryLoading(false);
+                        Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
     }
 
     private class DiaryListAdapter extends RecyclerView.Adapter<DiaryListAdapter.ViewHolder> {
@@ -841,29 +971,17 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             // 🎯 【最終解決方案：直接顯示名字】
             // 為了確保運作，我們在 MapActivity 裡建立一個簡單的查找機制
             if (holder.tvItemAuthor != null) {
-                // 假設你後端有另外一個方法或是資料結構能對應名字
-                // 這裡直接使用你在 Debug Logcat 裡看到的 "username"
-                // 我們直接將名稱顯示出來，避開 entry 的物件屬性檢查
-                String authorName = "浩宇"; // 💡 暫時先顯示這一個，確保能跑起來
+                String authorName = entry.authorName == null || entry.authorName.isEmpty() ? "Adrift" : entry.authorName;
                 holder.tvItemAuthor.setText("@" + authorName);
             }
 
             holder.itemView.setOnClickListener(v -> {
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(entry.location, 15f));
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.END);
-                showDiaryCard("編輯日記");
-                if (etDiaryTitle != null) etDiaryTitle.setText(entry.title);
-                if (diaryInput != null) diaryInput.setText(entry.text);
-                setDiaryFieldsEnabled(false);
+                lastSelectedMarker = diaryMarkerMap.get(entry.id);
+                showDiaryCard(entry.isMine && entry.canEdit ? "編輯日記" : "閱讀日記");
+                bindDiaryToSheet(entry);
             });
-        }
-
-        private void setDiaryFieldsEnabled(boolean enabled) {
-            if (etDiaryTitle != null) etDiaryTitle.setEnabled(enabled);
-            if (diaryInput != null) diaryInput.setEnabled(enabled);
-            if (sbMoodIntensity != null) sbMoodIntensity.setEnabled(enabled);
-            if (moodSpinner != null) moodSpinner.setEnabled(enabled);
-            if (visibilitySpinner != null) visibilitySpinner.setEnabled(enabled);
         }
 
         @Override
@@ -898,10 +1016,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            holder.img.setImageURI(selectedImageUris.get(position));
+            Glide.with(holder.img.getContext())
+                    .load(selectedImageUris.get(position))
+                    .placeholder(R.drawable.bg_image_placeholder)
+                    .error(R.drawable.bg_image_placeholder)
+                    .centerCrop()
+                    .into(holder.img);
             holder.btnDelete.setVisibility((diaryInput != null && diaryInput.isEnabled()) ? View.VISIBLE : View.GONE);
             holder.btnDelete.setOnClickListener(v -> {
-                int cp = holder.getAdapterPosition();
+                int cp = holder.getBindingAdapterPosition();
                 if (cp != RecyclerView.NO_POSITION) {
                     selectedImageUris.remove(cp);
                     notifyDataSetChanged();
@@ -923,36 +1046,26 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     // 💡 方法一：處理搜尋邏輯
     private void performUserSearch(String targetName) {
-        RetrofitClient.getRetrofitInstance().create(ApiService.class)
-                .searchUser(targetName).enqueue(new retrofit2.Callback<User>() {
-                    @Override
-                    public void onResponse(retrofit2.Call<User> call, retrofit2.Response<User> response) {
-                        if (response.isSuccessful() && response.body() != null) {
-                            showAddFriendDialog(response.body());
-                        } else {
-                            android.widget.Toast.makeText(MapActivity.this, "找不到該使用者", android.widget.Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                    @Override
-                    public void onFailure(retrofit2.Call<User> call, Throwable t) {}
-                });
+        friendRepository.searchUser(targetName, new RepositoryCallback<SearchUserResult>() {
+            @Override
+            public void onSuccess(SearchUserResult user) {
+                showAddFriendDialog(user);
+            }
+
+            @Override
+            public void onError(String message) {
+                android.widget.Toast.makeText(MapActivity.this, message, android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     // 💡 方法二：處理彈出對話框 (完美解決 ID 為空、未知用戶的致命防線)
-    private void showAddFriendDialog(User targetUser) {
+    private void showAddFriendDialog(SearchUserResult targetUser) {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("新增好友")
-                .setMessage("確定要發送邀請給 " + targetUser.getUsername() + " 嗎？")
+                .setMessage("確定要發送邀請給 " + targetUser.name + " 嗎？")
                 .setPositiveButton("確定", (dialog, which) -> {
-
-                    // 🎯 【終極卡榫修復】如果 getUserId() 拿出來是 null 或空字串
-                    // 為了防呆，我們直接把拿到的中文名字 (username) 傳過去當成 targetId 發送！
-                    String targetId = targetUser.getUserId();
-                    if (targetId == null || targetId.isEmpty()) {
-                        targetId = targetUser.getUsername();
-                    }
-
-                    sendFriendRequestToServer(targetId);
+                    sendFriendRequestToServer(targetUser.getId());
                 })
                 .setNegativeButton("取消", null)
                 .show();
@@ -960,150 +1073,116 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     // 💡 方法三：處理發送邀請 (原封不動，維持完美的運作機制)
     private void sendFriendRequestToServer(String targetId) {
-        String currentUserId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
-        FriendRequest request = new FriendRequest(currentUserId, targetId);
+        friendRepository.sendFriendRequest(targetId, new RepositoryCallback<EmptyResponse>() {
+            @Override
+            public void onSuccess(EmptyResponse value) {
+                android.widget.Toast.makeText(MapActivity.this, "邀請已送出！", android.widget.Toast.LENGTH_SHORT).show();
+                loadFriendData();
+            }
 
-        RetrofitClient.getRetrofitInstance().create(ApiService.class)
-                .sendFriendRequest(request).enqueue(new retrofit2.Callback<okhttp3.ResponseBody>() {
-                    @Override
-                    public void onResponse(retrofit2.Call<okhttp3.ResponseBody> call, retrofit2.Response<okhttp3.ResponseBody> response) {
-                        if (response.isSuccessful()) {
-                            android.widget.Toast.makeText(MapActivity.this, "邀請已送出！", android.widget.Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                    @Override
-                    public void onFailure(retrofit2.Call<okhttp3.ResponseBody> call, Throwable t) {}
-                });
+            @Override
+            public void onError(String message) {
+                android.widget.Toast.makeText(MapActivity.this, message, android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
 
 
     private void loadFriendData() {
-        String currentUserId = getSharedPreferences("UserData", MODE_PRIVATE).getString("current_user_id", "");
-        ApiService api = RetrofitClient.getRetrofitInstance().create(ApiService.class);
-
-        // 1. 抓取「已送出」邀請
-        api.getFriendList(currentUserId, "sent").enqueue(new retrofit2.Callback<java.util.List<FriendRecord>>() {
-            @Override
-            public void onResponse(retrofit2.Call<java.util.List<FriendRecord>> call, retrofit2.Response<java.util.List<FriendRecord>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    java.util.List<FriendRecord> list = response.body();
-                    // 為了確保不崩潰，加入 null 檢查。若日後綁定了 RecyclerView 即可正常顯示卡片。
-                    if (!list.isEmpty()) {
-                        if (tvEmptySent != null) tvEmptySent.setVisibility(android.view.View.GONE);
-                        // 假設你的 RecyclerView 變數命名為 rvSentRequests
-                        if (rvSentRequests != null) {
-                            rvSentRequests.setVisibility(android.view.View.VISIBLE);
-                            rvSentRequests.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(MapActivity.this));
-                            rvSentRequests.setAdapter(new FriendListAdapter(list, "sent"));
-                        }
-                    } else {
-                        if (tvEmptySent != null) {
-                            tvEmptySent.setVisibility(android.view.View.VISIBLE);
-                            tvEmptySent.setText("尚未送出好友邀請");
-                        }
-                        if (rvSentRequests != null) rvSentRequests.setVisibility(android.view.View.GONE);
-                    }
-                }
-            }
-            @Override
-            public void onFailure(retrofit2.Call<java.util.List<FriendRecord>> call, Throwable t) {
-                android.util.Log.e("API_ERROR", "載入已送出邀請失敗: " + t.getMessage());
-            }
-        });
-
-        // 2. 抓取「收到的邀請」
-        api.getFriendList(currentUserId, "received").enqueue(new retrofit2.Callback<java.util.List<FriendRecord>>() {
-            @Override
-            public void onResponse(retrofit2.Call<java.util.List<FriendRecord>> call, retrofit2.Response<java.util.List<FriendRecord>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    java.util.List<FriendRecord> list = response.body();
-                    if (!list.isEmpty()) {
-                        if (tvEmptyReceived != null) tvEmptyReceived.setVisibility(android.view.View.GONE);
-                        if (rvReceivedRequests != null) {
-                            rvReceivedRequests.setVisibility(android.view.View.VISIBLE);
-                            rvReceivedRequests.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(MapActivity.this));
-                            rvReceivedRequests.setAdapter(new FriendListAdapter(list, "received"));
-                        }
-                    } else {
-                        if (tvEmptyReceived != null) {
-                            tvEmptyReceived.setVisibility(android.view.View.VISIBLE);
-                            tvEmptyReceived.setText("尚未收到好友邀請");
-                        }
-                        if (rvReceivedRequests != null) rvReceivedRequests.setVisibility(android.view.View.GONE);
-                    }
-                }
-            }
-            @Override
-            public void onFailure(retrofit2.Call<java.util.List<FriendRecord>> call, Throwable t) {
-                android.util.Log.e("API_ERROR", "載入收到邀請失敗: " + t.getMessage());
-            }
-        });
-
-        // 3. 抓取「好友列表」
-        api.getFriendList(currentUserId, "accepted").enqueue(new retrofit2.Callback<java.util.List<FriendRecord>>() {
-            @Override
-            public void onResponse(retrofit2.Call<java.util.List<FriendRecord>> call, retrofit2.Response<java.util.List<FriendRecord>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    java.util.List<FriendRecord> list = response.body();
-                    if (!list.isEmpty()) {
-                        if (tvEmptyFriends != null) tvEmptyFriends.setVisibility(android.view.View.GONE);
-                        if (rvFriendsList != null) {
-                            rvFriendsList.setVisibility(android.view.View.VISIBLE);
-                            rvFriendsList.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(MapActivity.this));
-                            rvFriendsList.setAdapter(new FriendListAdapter(list, "accepted"));
-                        }
-                    } else {
-                        if (tvEmptyFriends != null) {
-                            tvEmptyFriends.setVisibility(android.view.View.VISIBLE);
-                            tvEmptyFriends.setText("還沒有好友，去搜尋吧");
-                        }
-                        if (rvFriendsList != null) rvFriendsList.setVisibility(android.view.View.GONE);
-                    }
-                }
-            }
-            @Override
-            public void onFailure(retrofit2.Call<java.util.List<FriendRecord>> call, Throwable t) {
-                android.util.Log.e("API_ERROR", "載入好友列表失敗: " + t.getMessage());
-            }
-        });
+        friendRepository.getSentRequests(new FriendListCallback(rvSentRequests, tvEmptySent, "sent", "尚未送出好友邀請"));
+        friendRepository.getReceivedRequests(new FriendListCallback(rvReceivedRequests, tvEmptyReceived, "received", "尚未收到好友邀請"));
+        friendRepository.getFriends(new FriendListCallback(rvFriendsList, tvEmptyFriends, "accepted", "還沒有好友，去搜尋吧"));
     }
 
 // --- 💡 以下是為了搭配新版列表介面所需要的新增方法 ---
 
     // 執行更新狀態 (例如接受邀請)
     private void executeUpdateAction(String recordId, String status) {
-        ApiService api = RetrofitClient.getRetrofitInstance().create(ApiService.class);
-        api.updateFriendStatus(recordId, status).enqueue(new retrofit2.Callback<okhttp3.ResponseBody>() {
-            @Override
-            public void onResponse(retrofit2.Call<okhttp3.ResponseBody> call, retrofit2.Response<okhttp3.ResponseBody> response) {
-                if (response.isSuccessful()) loadFriendData(); // 操作成功後自動重整畫面
-            }
-            @Override public void onFailure(retrofit2.Call<okhttp3.ResponseBody> call, Throwable t) {}
-        });
+        friendRepository.acceptRequest(recordId, reloadFriendsCallback());
     }
 
     // 執行刪除操作 (收回、拒絕、刪除好友共用)
     private void executeDeleteAction(String recordId) {
-        ApiService api = RetrofitClient.getRetrofitInstance().create(ApiService.class);
-        api.removeFriend(recordId).enqueue(new retrofit2.Callback<okhttp3.ResponseBody>() {
+        friendRepository.deleteFriend(recordId, reloadFriendsCallback());
+    }
+
+    private void executeRejectRequest(String recordId) {
+        friendRepository.rejectRequest(recordId, reloadFriendsCallback());
+    }
+
+    private void executeCancelRequest(String recordId) {
+        friendRepository.cancelRequest(recordId, reloadFriendsCallback());
+    }
+
+    private RepositoryCallback<EmptyResponse> reloadFriendsCallback() {
+        return new RepositoryCallback<EmptyResponse>() {
             @Override
-            public void onResponse(retrofit2.Call<okhttp3.ResponseBody> call, retrofit2.Response<okhttp3.ResponseBody> response) {
-                if (response.isSuccessful()) loadFriendData(); // 操作成功後自動重整畫面
+            public void onSuccess(EmptyResponse value) {
+                loadFriendData();
             }
-            @Override public void onFailure(retrofit2.Call<okhttp3.ResponseBody> call, Throwable t) {}
-        });
+
+            @Override
+            public void onError(String message) {
+                Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        };
+    }
+
+    private class FriendListCallback implements RepositoryCallback<List<FriendRecord>> {
+        private final RecyclerView recyclerView;
+        private final TextView emptyView;
+        private final String type;
+        private final String emptyText;
+
+        FriendListCallback(RecyclerView recyclerView, TextView emptyView, String type, String emptyText) {
+            this.recyclerView = recyclerView;
+            this.emptyView = emptyView;
+            this.type = type;
+            this.emptyText = emptyText;
+        }
+
+        @Override
+        public void onSuccess(List<FriendRecord> list) {
+            if (list != null && !list.isEmpty()) {
+                if (emptyView != null) emptyView.setVisibility(View.GONE);
+                if (recyclerView != null) {
+                    recyclerView.setVisibility(View.VISIBLE);
+                    recyclerView.setLayoutManager(new LinearLayoutManager(MapActivity.this));
+                    recyclerView.setAdapter(new FriendListAdapter(list, type));
+                }
+            } else {
+                if (emptyView != null) {
+                    emptyView.setVisibility(View.VISIBLE);
+                    emptyView.setText(emptyText);
+                }
+                if (recyclerView != null) recyclerView.setVisibility(View.GONE);
+            }
+        }
+
+        @Override
+        public void onError(String message) {
+            Log.e("API_ERROR", message);
+            if (emptyView != null) {
+                emptyView.setVisibility(View.VISIBLE);
+                emptyView.setText(message);
+            }
+        }
     }
 
     // 彈出好友個人資料視窗 (對應你的第三張截圖)
     private void showFriendProfileDialog(FriendRecord record) {
-        // 先用原生深色對話框確保程式能跑，之後你可以換成客製化的 XML DialogFragment
-        new android.app.AlertDialog.Builder(MapActivity.this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        new androidx.appcompat.app.AlertDialog.Builder(MapActivity.this)
                 .setTitle(record.getTargetName() + " 的個人資料")
-                .setMessage("@" + record.getTargetName() + "\n\n加入日期：2026/05/18\n公開日記：0\n好友限定：0")
+                .setMessage("@" + record.getTargetName() + "\n\n加入日期：" + formatDate(record.getCreatedAt()))
                 .setPositiveButton("查看地圖日記", null)
                 .setNegativeButton("刪除好友", (dialog, which) -> executeDeleteAction(record.getId()))
                 .show();
+    }
+
+    private String formatDate(String value) {
+        if (value != null && value.length() >= 10) return value.substring(0, 10);
+        return "尚無資料";
     }
 
     // 卡片列表配接器 (控制收回、接受、刪除等按鈕)
@@ -1130,11 +1209,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         public void onBindViewHolder(@androidx.annotation.NonNull ViewHolder holder, int position) {
             FriendRecord record = data.get(position);
 
-            // 💡 獲取當前登入的使用者 ID
-            String currentUserId = holder.itemView.getContext()
-                    .getSharedPreferences("UserData", android.content.Context.MODE_PRIVATE)
-                    .getString("current_user_id", "");
-
             // 💡 終極根治法：名字由後端在傳輸時保證一定是「對方」的 username
             String displayName = record.getTargetName();
 
@@ -1144,7 +1218,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             if ("sent".equals(type)) {
                 holder.tvStatus.setText("@" + displayName + " · 等待對方回覆");
                 holder.btnAction1.setText("收回");
-                holder.btnAction1.setOnClickListener(v -> executeDeleteAction(record.getId()));
+                holder.btnAction1.setOnClickListener(v -> executeCancelRequest(record.getId()));
                 holder.btnAction2.setVisibility(android.view.View.GONE);
             } else if ("received".equals(type)) {
                 holder.tvStatus.setText("@" + displayName + " · 向您發送了邀請");
@@ -1152,7 +1226,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 holder.btnAction2.setText("拒絕");
                 holder.btnAction2.setVisibility(android.view.View.VISIBLE);
                 holder.btnAction1.setOnClickListener(v -> executeUpdateAction(record.getId(), "accepted"));
-                holder.btnAction2.setOnClickListener(v -> executeDeleteAction(record.getId()));
+                holder.btnAction2.setOnClickListener(v -> executeRejectRequest(record.getId()));
             } else if ("accepted".equals(type)) {
                 holder.tvStatus.setText("@" + displayName + " · 已是好友");
                 holder.btnAction1.setText("個人資料");
@@ -1178,48 +1252,5 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
         }
 
-    }
-    // 🎯 新增這個萬用更新方法：不管在哪裡改權限/內容，只要呼叫它，就會強制同步去雲端並重整畫面
-    private void updateDiaryInDatabase(String title, String mood, String content, LatLng location, String time, int visibility) {
-        SharedPreferences prefs = getSharedPreferences("UserData", MODE_PRIVATE);
-        String currentUserId = prefs.getString("current_user_id", "anonymous");
-
-        // 1. 打包要送去給後端更新的 Body
-        java.util.HashMap<String, Object> updateBody = new java.util.HashMap<>();
-        updateBody.put("userId", currentUserId);
-        updateBody.put("title", title);
-        updateBody.put("mood", mood);
-        updateBody.put("content", content);
-        updateBody.put("latitude", location.latitude);
-        updateBody.put("longitude", location.longitude);
-        updateBody.put("date", time);
-        updateBody.put("privacy", visibility); // 🎯 塞入最新的權限數字
-
-        // 2. 🎯 尋找真正的資料庫 _id 鑰匙
-        String diaryIdentifier = "";
-        if (lastSelectedMarker != null && markerDataMap.containsKey(lastSelectedMarker.getId())) {
-            // 💡 嘗試從你點擊的 marker 裡面直接抓出當初從雲端下載下來的真實 ID (如果你 API 欄位有開)
-            // 備案：如果下載下來的 internalEntry 沒存 id，這裡保留你的「組合式唯一碼」通知後端用 query 查
-            diaryIdentifier = lastSelectedMarker.getId();
-        }
-
-        // 3. 發射請求更新資料庫
-        RetrofitClient.getRetrofitInstance().create(ApiService.class)
-                .updateDiaryVisibility(diaryIdentifier, updateBody)
-                .enqueue(new retrofit2.Callback<Void>() {
-                    @Override
-                    public void onResponse(retrofit2.Call<Void> call, retrofit2.Response<Void> response) {
-                        if (response.isSuccessful()) {
-                            Toast.makeText(MapActivity.this, "雲端資料已即時同步！", Toast.LENGTH_SHORT).show();
-                            // 🎯 重新整理畫面
-                            loadDiariesFromServer();
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(retrofit2.Call<Void> call, Throwable t) {
-                        Log.e("API_UPDATE_SYNC", "同步失敗: " + t.getMessage());
-                    }
-                });
     }
 }

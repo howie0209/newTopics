@@ -315,6 +315,25 @@
                     android:layout_marginTop="8dp"
                     android:visibility="gone" />
 
+                <ImageView
+                    android:id="@+id/iv_diary_remote_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_image_placeholder"
+                    android:contentDescription="日記圖片"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_diary_meta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/hint_text"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+
                 <Button
                     android:id="@+id/btn_save"
                     android:layout_width="match_parent"
@@ -325,6 +344,52 @@
                     android:textColor="@color/dark_bg"
                     android:textStyle="bold"
                     app:cornerRadius="8dp" />
+
+                <Button
+                    android:id="@+id/btn_delete_diary"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="42dp"
+                    android:layout_marginTop="8dp"
+                    android:text="刪除日記"
+                    android:textColor="#FFAB6B"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/layout_reactions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <Button
+                        android:id="@+id/btn_react_understand"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:text="懂 0"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btn_react_hug"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_weight="1"
+                        android:text="抱 0"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btn_react_relate"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:text="共鳴 0"
+                        android:textSize="11sp" />
+                </LinearLayout>
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
