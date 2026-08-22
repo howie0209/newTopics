@@ -75,6 +75,7 @@
     <style name="Widget.Adrift.Button" />
 
     <style name="Widget.Adrift.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="android:layout_height">@dimen/button_height</item>
         <item name="android:minHeight">@dimen/button_height</item>
         <item name="android:background">@drawable/bg_adrift_button_primary</item>
         <item name="android:textColor">@color/adrift_background</item>
@@ -85,6 +86,7 @@
     </style>
 
     <style name="Widget.Adrift.Button.Secondary" parent="Widget.MaterialComponents.Button">
+        <item name="android:layout_height">@dimen/button_height</item>
         <item name="android:minHeight">@dimen/button_height</item>
         <item name="android:background">@drawable/bg_adrift_button_secondary</item>
         <item name="android:textColor">@color/adrift_text_primary</item>
@@ -95,6 +97,7 @@
     </style>
 
     <style name="Widget.Adrift.Button.Danger" parent="Widget.MaterialComponents.Button">
+        <item name="android:layout_height">@dimen/button_height</item>
         <item name="android:minHeight">@dimen/button_height</item>
         <item name="android:background">@drawable/bg_adrift_button_danger</item>
         <item name="android:textColor">@color/adrift_error</item>
