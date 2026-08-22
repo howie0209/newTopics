@@ -50,7 +50,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_xs"
-            android:text="email@example.com" />
+            android:text="正在同步帳號資料" />
 
         <TextView
             android:id="@+id/tv_settings_join_date"
@@ -99,7 +99,8 @@
                     android:id="@+id/et_new_name"
                     style="@style/Widget.Adrift.Input"
                     android:layout_width="match_parent"
-                    android:hint="輸入新的名稱" />
+                    android:hint="輸入新的名稱"
+                    android:imeOptions="actionDone" />
 
                 <Button
                     android:id="@+id/btn_save_name"
@@ -141,6 +142,7 @@
                     android:layout_width="match_parent"
                     android:layout_marginBottom="@dimen/space_sm"
                     android:hint="請輸入目前密碼以驗證身份"
+                    android:imeOptions="actionNext"
                     android:inputType="textPassword" />
 
                 <EditText
@@ -148,6 +150,7 @@
                     style="@style/Widget.Adrift.Input"
                     android:layout_width="match_parent"
                     android:hint="輸入新的電子信箱"
+                    android:imeOptions="actionDone"
                     android:inputType="textEmailAddress" />
 
                 <Button
@@ -190,6 +193,7 @@
                     android:layout_width="match_parent"
                     android:layout_marginBottom="@dimen/space_sm"
                     android:hint="目前密碼"
+                    android:imeOptions="actionNext"
                     android:inputType="textPassword" />
 
                 <EditText
@@ -198,6 +202,7 @@
                     android:layout_width="match_parent"
                     android:layout_marginBottom="@dimen/space_sm"
                     android:hint="新密碼 (至少 6 個字元)"
+                    android:imeOptions="actionNext"
                     android:inputType="textPassword" />
 
                 <EditText
@@ -205,6 +210,7 @@
                     style="@style/Widget.Adrift.Input"
                     android:layout_width="match_parent"
                     android:hint="再次確認新密碼"
+                    android:imeOptions="actionDone"
                     android:inputType="textPassword" />
 
                 <Button
@@ -259,6 +265,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:contentDescription="切換到地圖"
             android:gravity="center"
             android:text="地圖"
             android:textColor="@color/adrift_text_secondary"
@@ -269,6 +276,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:contentDescription="切換到好友"
             android:gravity="center"
             android:text="好友"
             android:textColor="@color/adrift_text_secondary"
@@ -279,6 +287,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
+            android:contentDescription="切換到探索"
             android:gravity="center"
             android:text="探索"
             android:textColor="@color/adrift_text_secondary"
@@ -290,6 +299,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:background="@drawable/bg_adrift_nav_item"
+            android:contentDescription="目前在設定"
             android:gravity="center"
             android:text="設定"
             android:textColor="@color/adrift_text_primary"

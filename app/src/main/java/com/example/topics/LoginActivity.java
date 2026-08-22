@@ -2,7 +2,7 @@ package com.example.topics;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -29,6 +29,7 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
     private AuthRepository authRepository;
     private SessionManager sessionManager;
     private Button btnLogin;
+    private boolean destroyed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,8 +47,7 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
             mapFragment.getMapAsync(this);
         }
 
-        // 綁定 XML 裡的元件 ID
-        etEmail = findViewById(R.id.et_login_email); // 💡 確保 XML 裡有這個 ID
+        etEmail = findViewById(R.id.et_login_email);
         etPassword = findViewById(R.id.et_login_password);
         btnLogin = findViewById(R.id.btn_login_submit);
         TextView tvGoRegister = findViewById(R.id.tv_go_register);
@@ -76,6 +76,7 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
     }
 
     private void performLogin() {
+        if (btnLogin != null && !btnLogin.isEnabled()) return;
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
@@ -83,11 +84,16 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
             Toast.makeText(this, "請輸入電子郵件與密碼", Toast.LENGTH_SHORT).show();
             return;
         }
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(this, "請輸入有效的電子郵件", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         setLoading(true);
         authRepository.login(email, password, new RepositoryCallback<UserDto>() {
             @Override
             public void onSuccess(UserDto user) {
+                if (!isActive()) return;
                 setLoading(false);
                 Toast.makeText(LoginActivity.this, "登入成功！", Toast.LENGTH_SHORT).show();
                 openMainApp();
@@ -95,8 +101,8 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 setLoading(false);
-                Log.e("LoginError", "登入失敗: " + message);
                 Toast.makeText(LoginActivity.this, message, Toast.LENGTH_SHORT).show();
             }
         });
@@ -107,12 +113,14 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
         authRepository.restoreSession(new RepositoryCallback<UserDto>() {
             @Override
             public void onSuccess(UserDto user) {
+                if (!isActive()) return;
                 setLoading(false);
                 openMainApp();
             }
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 setLoading(false);
                 authRepository.logout();
             }
@@ -133,6 +141,16 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
         }
     }
 
+    private boolean isActive() {
+        return !destroyed && !isFinishing() && !isDestroyed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        destroyed = true;
+        super.onDestroy();
+    }
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mBackgroundMap = googleMap;
@@ -141,8 +159,7 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
             googleMap.setMapStyle(
                     MapStyleOptions.loadRawResourceStyle(
                             this, R.raw.map_style_dark));
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
 
         mBackgroundMap.getUiSettings().setAllGesturesEnabled(false);

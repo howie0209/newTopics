@@ -74,7 +74,8 @@
                     android:layout_width="match_parent"
                     android:layout_marginTop="@dimen/space_xs"
                     android:layout_marginBottom="@dimen/space_md"
-                    android:hint="你的顯示名稱" />
+                    android:hint="你的顯示名稱"
+                    android:imeOptions="actionNext" />
 
                 <TextView
                     style="@style/Text.Adrift.Caption"
@@ -90,6 +91,7 @@
                     android:layout_marginTop="@dimen/space_xs"
                     android:layout_marginBottom="@dimen/space_md"
                     android:hint="4-20 位英數、底線或連字號"
+                    android:imeOptions="actionNext"
                     android:inputType="text" />
 
                 <TextView
@@ -105,7 +107,8 @@
                     android:layout_width="match_parent"
                     android:layout_marginTop="@dimen/space_xs"
                     android:layout_marginBottom="@dimen/space_md"
-                    android:hint="name@example.com"
+                    android:hint="輸入電子郵件"
+                    android:imeOptions="actionNext"
                     android:inputType="textEmailAddress" />
 
                 <TextView
@@ -122,6 +125,7 @@
                     android:layout_marginTop="@dimen/space_xs"
                     android:layout_marginBottom="@dimen/space_md"
                     android:hint="至少 6 個字元"
+                    android:imeOptions="actionNext"
                     android:inputType="textPassword" />
 
                 <TextView
@@ -138,6 +142,7 @@
                     android:layout_marginTop="@dimen/space_xs"
                     android:layout_marginBottom="@dimen/space_lg"
                     android:hint="再次輸入密碼"
+                    android:imeOptions="actionDone"
                     android:inputType="textPassword" />
 
                 <Button

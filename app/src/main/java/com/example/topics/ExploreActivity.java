@@ -5,6 +5,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,12 +25,15 @@ import com.example.topics.data.model.ReactionUpdateData;
 import com.example.topics.data.model.UserDto;
 import com.example.topics.data.repository.DiaryRepository;
 import com.example.topics.data.repository.RepositoryCallback;
+import com.example.topics.ui.common.AppNavigator;
 import com.example.topics.ui.design.AdriftSystemUi;
 import com.example.topics.ui.social.ExploreDiaryAdapter;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ExploreActivity extends AppCompatActivity {
     private static final int DEFAULT_RADIUS = 5000;
@@ -40,9 +46,12 @@ public class ExploreActivity extends AppCompatActivity {
     private TextView chip1;
     private TextView chip5;
     private TextView chip10;
+    private Button refreshButton;
     private int radius = DEFAULT_RADIUS;
     private boolean loading;
+    private boolean destroyed;
     private ActivityResultLauncher<String> permissionLauncher;
+    private final Set<String> reactingDiaryIds = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,11 +78,13 @@ public class ExploreActivity extends AppCompatActivity {
         chip1 = findViewById(R.id.chip_radius_1);
         chip5 = findViewById(R.id.chip_radius_5);
         chip10 = findViewById(R.id.chip_radius_10);
-        findViewById(R.id.btn_explore_refresh).setOnClickListener(v -> refresh());
+        refreshButton = findViewById(R.id.btn_explore_refresh);
+        refreshButton.setOnClickListener(v -> refresh());
     }
 
     private void setupPermissionLauncher() {
         permissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+            if (!isActive()) return;
             if (granted) refresh();
             else statusView.setText("需要位置權限才能取得附近公開日記");
         });
@@ -113,15 +124,17 @@ public class ExploreActivity extends AppCompatActivity {
 
     private void setupBottomNav() {
         findViewById(R.id.explore_nav_map).setOnClickListener(v -> {
-            startActivity(new Intent(this, MapActivity.class));
-            finish();
+            AppNavigator.openTopLevel(this, MapActivity.class);
         });
-        findViewById(R.id.explore_nav_friends).setOnClickListener(v -> startActivity(new Intent(this, FriendsActivity.class)));
-        findViewById(R.id.explore_nav_settings).setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        findViewById(R.id.explore_nav_friends).setOnClickListener(v -> AppNavigator.openTopLevel(this, FriendsActivity.class));
+        findViewById(R.id.explore_nav_settings).setOnClickListener(v -> AppNavigator.openTopLevel(this, SettingsActivity.class));
     }
 
     private void selectRadius(int nextRadius) {
+        if (radius == nextRadius && loading) return;
         radius = nextRadius;
+        View root = getWindow() == null ? null : getWindow().getDecorView();
+        if (root != null) root.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
         renderRadius();
         refresh();
     }
@@ -146,25 +159,36 @@ public class ExploreActivity extends AppCompatActivity {
             return;
         }
         loading = true;
+        refreshButton.setEnabled(false);
+        refreshButton.setText("刷新中");
         statusView.setText("取得附近公開日記中");
         locationClient.getLastLocation()
                 .addOnSuccessListener(this, this::loadExploreForLocation)
                 .addOnFailureListener(this, e -> {
+                    if (!isActive()) return;
                     loading = false;
+                    refreshButton.setEnabled(true);
+                    refreshButton.setText("刷新");
                     statusView.setText("無法取得位置：" + e.getMessage());
                 });
     }
 
     private void loadExploreForLocation(Location location) {
+        if (!isActive()) return;
         if (location == null) {
             loading = false;
+            refreshButton.setEnabled(true);
+            refreshButton.setText("刷新");
             statusView.setText("目前沒有可用位置，請在模擬器設定位置後刷新");
             return;
         }
         diaryRepository.getExploreDiaries(location.getLatitude(), location.getLongitude(), radius, new RepositoryCallback<List<DiaryDto>>() {
             @Override
             public void onSuccess(List<DiaryDto> value) {
+                if (!isActive()) return;
                 loading = false;
+                refreshButton.setEnabled(true);
+                refreshButton.setText("刷新");
                 adapter.submit(value);
                 int count = value == null ? 0 : value.size();
                 statusView.setText(count == 0 ? "附近沒有公開日記" : "附近公開日記 " + count + " 篇");
@@ -172,7 +196,10 @@ public class ExploreActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 loading = false;
+                refreshButton.setEnabled(true);
+                refreshButton.setText("刷新");
                 adapter.submit(null);
                 statusView.setText(message);
             }
@@ -181,14 +208,21 @@ public class ExploreActivity extends AppCompatActivity {
 
     private void react(DiaryDto diary, String type, int position) {
         if (position == RecyclerView.NO_POSITION || diary == null || diary.getId().isEmpty()) return;
+        if (!reactingDiaryIds.add(diary.getId())) return;
         diaryRepository.reactToDiary(diary.getId(), type, new RepositoryCallback<ReactionUpdateData>() {
             @Override
             public void onSuccess(ReactionUpdateData value) {
+                if (!isActive()) return;
+                reactingDiaryIds.remove(diary.getId());
                 adapter.applyReaction(position, value);
+                View root = getWindow() == null ? null : getWindow().getDecorView();
+                if (root != null) root.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
             }
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
+                reactingDiaryIds.remove(diary.getId());
                 Toast.makeText(ExploreActivity.this, message, Toast.LENGTH_SHORT).show();
             }
         });
@@ -207,10 +241,7 @@ public class ExploreActivity extends AppCompatActivity {
     }
 
     private void openLogin() {
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
+        AppNavigator.openLoginAndClear(this);
     }
 
     private boolean same(String a, String b) {
@@ -220,5 +251,16 @@ public class ExploreActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    private boolean isActive() {
+        return !destroyed && !isFinishing() && !isDestroyed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        destroyed = true;
+        reactingDiaryIds.clear();
+        super.onDestroy();
     }
 }

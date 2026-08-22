@@ -38,6 +38,7 @@ public class AuthRepository extends BaseRepository {
                 }
 
                 sessionManager.saveToken(token);
+                ApiClient.resetAuthRedirectGuard();
                 if (auth != null && auth.user != null) {
                     sessionManager.saveUser(auth.user);
                 } else if (body.user != null) {

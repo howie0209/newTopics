@@ -118,6 +118,7 @@
             android:layout_height="38dp"
             android:layout_marginEnd="@dimen/space_xs"
             android:layout_weight="1"
+            android:contentDescription="送出理解反應"
             android:minHeight="0dp"
             android:text="懂 0"
             android:textSize="12sp" />
@@ -129,6 +130,7 @@
             android:layout_height="38dp"
             android:layout_marginEnd="@dimen/space_xs"
             android:layout_weight="1"
+            android:contentDescription="送出擁抱反應"
             android:minHeight="0dp"
             android:text="抱 0"
             android:textSize="12sp" />
@@ -139,6 +141,7 @@
             android:layout_width="0dp"
             android:layout_height="38dp"
             android:layout_weight="1"
+            android:contentDescription="送出共鳴反應"
             android:minHeight="0dp"
             android:text="共 0"
             android:textSize="12sp" />

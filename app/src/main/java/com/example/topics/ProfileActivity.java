@@ -17,6 +17,7 @@ import com.example.topics.data.model.FriendProfileDto;
 import com.example.topics.data.model.UserDto;
 import com.example.topics.data.repository.FriendRepository;
 import com.example.topics.data.repository.RepositoryCallback;
+import com.example.topics.ui.common.AppNavigator;
 import com.example.topics.ui.common.AvatarBinder;
 import com.example.topics.ui.design.AdriftSystemUi;
 
@@ -43,6 +44,7 @@ public class ProfileActivity extends AppCompatActivity {
     private String avatar;
     private String friendshipStatus;
     private String requestId;
+    private boolean destroyed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,6 +145,7 @@ public class ProfileActivity extends AppCompatActivity {
         friendRepository.getFriendProfile(userId, new RepositoryCallback<FriendProfileDto>() {
             @Override
             public void onSuccess(FriendProfileDto value) {
+                if (!isActive()) return;
                 if (value == null) return;
                 name = value.getDisplayName();
                 userCode = value.userCode == null ? "" : value.userCode;
@@ -155,6 +158,7 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 statsView.setText(message);
             }
         });
@@ -169,10 +173,12 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void sendFriendRequest() {
+        if (userId.isEmpty() || !primaryButton.isEnabled()) return;
         setBusy("送出中");
         friendRepository.sendFriendRequest(userId, new RepositoryCallback<EmptyResponse>() {
             @Override
             public void onSuccess(EmptyResponse value) {
+                if (!isActive()) return;
                 friendshipStatus = "sent_request";
                 primaryButton.setEnabled(true);
                 Toast.makeText(ProfileActivity.this, "好友邀請已送出", Toast.LENGTH_SHORT).show();
@@ -181,6 +187,7 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 primaryButton.setEnabled(true);
                 primaryButton.setText("加好友");
                 Toast.makeText(ProfileActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -189,15 +196,16 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void acceptRequest() {
+        if (!primaryButton.isEnabled()) return;
         if (requestId.isEmpty()) {
-            startActivity(new Intent(this, FriendsActivity.class));
-            finish();
+            AppNavigator.openTopLevel(this, FriendsActivity.class);
             return;
         }
         setBusy("接受中");
         friendRepository.acceptRequest(requestId, new RepositoryCallback<EmptyResponse>() {
             @Override
             public void onSuccess(EmptyResponse value) {
+                if (!isActive()) return;
                 friendshipStatus = "friend";
                 primaryButton.setEnabled(true);
                 Toast.makeText(ProfileActivity.this, "已成為好友", Toast.LENGTH_SHORT).show();
@@ -207,6 +215,7 @@ public class ProfileActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 primaryButton.setEnabled(true);
                 primaryButton.setText("接受邀請");
                 Toast.makeText(ProfileActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -220,10 +229,7 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void openLogin() {
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
+        AppNavigator.openLoginAndClear(this);
     }
 
     private String value(String value) {
@@ -232,5 +238,15 @@ public class ProfileActivity extends AppCompatActivity {
 
     private boolean same(String a, String b) {
         return a != null && b != null && !a.isEmpty() && a.equals(b);
+    }
+
+    private boolean isActive() {
+        return !destroyed && !isFinishing() && !isDestroyed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        destroyed = true;
+        super.onDestroy();
     }
 }

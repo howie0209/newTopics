@@ -2,7 +2,7 @@ package com.example.topics;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -26,6 +26,7 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
     private GoogleMap mBackgroundMap;
     private AuthRepository authRepository;
     private Button btnRegister;
+    private boolean destroyed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +55,7 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
         btnRegister.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (btnRegister != null && !btnRegister.isEnabled()) return;
                 // 取得使用者輸入的字串
                 String name = etUsername.getText().toString().trim();
                 String userCode = etUserCode.getText().toString().trim().toLowerCase();
@@ -66,9 +68,17 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
                     Toast.makeText(RegisterActivity.this, "請填寫完整資訊", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                if (!Patterns.EMAIL_ADDRESS.matcher(mail).matches()) {
+                    Toast.makeText(RegisterActivity.this, "請輸入有效的電子郵件", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
                 if (!userCode.matches("^[a-zA-Z0-9_-]{4,20}$")) {
                     Toast.makeText(RegisterActivity.this, "使用者 ID 需為 4-20 位英數、底線或連字號", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (pwd.length() < 6) {
+                    Toast.makeText(RegisterActivity.this, "密碼至少需 6 個字元", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -81,6 +91,7 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
                 authRepository.register(name, mail, pwd, userCode, new RepositoryCallback<UserDto>() {
                     @Override
                     public void onSuccess(UserDto user) {
+                        if (!isActive()) return;
                         setLoading(false);
                         Toast.makeText(RegisterActivity.this, "註冊成功！", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
@@ -90,8 +101,8 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
 
                     @Override
                     public void onError(String message) {
+                        if (!isActive()) return;
                         setLoading(false);
-                        Log.e("API_REG", "註冊失敗: " + message);
                         Toast.makeText(RegisterActivity.this, message, Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -114,6 +125,16 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
         }
     }
 
+    private boolean isActive() {
+        return !destroyed && !isFinishing() && !isDestroyed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        destroyed = true;
+        super.onDestroy();
+    }
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mBackgroundMap = googleMap;
@@ -123,8 +144,7 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
             googleMap.setMapStyle(
                     MapStyleOptions.loadRawResourceStyle(
                             this, R.raw.map_style_dark));
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
 
         // 禁用地圖手勢

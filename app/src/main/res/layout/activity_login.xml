@@ -70,7 +70,8 @@
                 android:layout_width="match_parent"
                 android:layout_marginTop="@dimen/space_xs"
                 android:layout_marginBottom="@dimen/space_md"
-                android:hint="name@example.com"
+                android:hint="輸入電子郵件"
+                android:imeOptions="actionNext"
                 android:inputType="textEmailAddress" />
 
             <TextView
@@ -87,6 +88,7 @@
                 android:layout_marginTop="@dimen/space_xs"
                 android:layout_marginBottom="@dimen/space_lg"
                 android:hint="輸入密碼"
+                android:imeOptions="actionDone"
                 android:inputType="textPassword" />
 
             <Button

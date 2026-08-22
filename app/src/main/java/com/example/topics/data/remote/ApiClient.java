@@ -7,6 +7,7 @@ import android.os.Looper;
 import com.example.topics.ApiService;
 import com.example.topics.LoginActivity;
 import com.example.topics.data.local.SessionManager;
+import java.util.concurrent.atomic.AtomicBoolean;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -19,6 +20,7 @@ public class ApiClient {
 
     private static Retrofit retrofit;
     private static AuthExpiredHandler authExpiredHandler;
+    private static final AtomicBoolean authRedirectInProgress = new AtomicBoolean(false);
 
     public static synchronized ApiService getService(Context context) {
         if (retrofit == null) {
@@ -43,6 +45,10 @@ public class ApiClient {
         authExpiredHandler = handler;
     }
 
+    public static void resetAuthRedirectGuard() {
+        authRedirectInProgress.set(false);
+    }
+
     private static Interceptor createAuthInterceptor(Context context, SessionManager sessionManager) {
         return chain -> {
             Request original = chain.request();
@@ -56,7 +62,7 @@ public class ApiClient {
 
             Response response = chain.proceed(builder.build());
 
-            if (response.code() == 401 && hadToken) {
+            if (response.code() == 401 && hadToken && authRedirectInProgress.compareAndSet(false, true)) {
                 sessionManager.clear();
                 if (authExpiredHandler != null) {
                     new Handler(Looper.getMainLooper()).post(authExpiredHandler::onAuthExpired);

@@ -3,8 +3,10 @@ package com.example.topics;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -24,6 +26,7 @@ import com.example.topics.data.model.SearchUserResult;
 import com.example.topics.data.model.UserDto;
 import com.example.topics.data.repository.FriendRepository;
 import com.example.topics.data.repository.RepositoryCallback;
+import com.example.topics.ui.common.AppNavigator;
 import com.example.topics.ui.common.AvatarBinder;
 import com.example.topics.ui.design.AdriftSystemUi;
 import com.example.topics.ui.social.SocialUserAdapter;
@@ -54,6 +57,8 @@ public class FriendsActivity extends AppCompatActivity {
     private final List<FriendDto> received = new ArrayList<>();
     private final List<FriendDto> sent = new ArrayList<>();
     private boolean loading;
+    private boolean actionInFlight;
+    private boolean destroyed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +92,13 @@ public class FriendsActivity extends AppCompatActivity {
         tabReceived = findViewById(R.id.tab_friends_received);
         tabSent = findViewById(R.id.tab_friends_sent);
         searchButton.setOnClickListener(v -> searchUser());
+        searchInput.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                searchUser();
+                return true;
+            }
+            return false;
+        });
     }
 
     private void setupAdapters() {
@@ -129,14 +141,15 @@ public class FriendsActivity extends AppCompatActivity {
 
     private void setupBottomNav() {
         findViewById(R.id.friends_nav_map).setOnClickListener(v -> {
-            startActivity(new Intent(this, MapActivity.class));
-            finish();
+            AppNavigator.openTopLevel(this, MapActivity.class);
         });
-        findViewById(R.id.friends_nav_explore).setOnClickListener(v -> startActivity(new Intent(this, ExploreActivity.class)));
-        findViewById(R.id.friends_nav_settings).setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        findViewById(R.id.friends_nav_explore).setOnClickListener(v -> AppNavigator.openTopLevel(this, ExploreActivity.class));
+        findViewById(R.id.friends_nav_settings).setOnClickListener(v -> AppNavigator.openTopLevel(this, SettingsActivity.class));
     }
 
     private void showTab(String tab) {
+        View root = getWindow() == null ? null : getWindow().getDecorView();
+        if (root != null) root.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
         searchPanel.setVisibility("search".equals(tab) ? View.VISIBLE : View.GONE);
         friendsView.setVisibility("friends".equals(tab) ? View.VISIBLE : View.GONE);
         receivedView.setVisibility("received".equals(tab) ? View.VISIBLE : View.GONE);
@@ -164,9 +177,11 @@ public class FriendsActivity extends AppCompatActivity {
     private void loadAll() {
         loading = true;
         status.setText("同步好友資料中");
+        status.setOnClickListener(null);
         friendRepository.getFriendDtos(new RepositoryCallback<List<FriendDto>>() {
             @Override
             public void onSuccess(List<FriendDto> value) {
+                if (!isActive()) return;
                 friends.clear();
                 if (value != null) friends.addAll(value);
                 friendsAdapter.submit(toFriendItems(friends));
@@ -175,8 +190,10 @@ public class FriendsActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 loading = false;
                 status.setText(message);
+                status.setOnClickListener(v -> loadAll());
             }
         });
     }
@@ -185,6 +202,7 @@ public class FriendsActivity extends AppCompatActivity {
         friendRepository.getReceivedRequestDtos(new RepositoryCallback<List<FriendDto>>() {
             @Override
             public void onSuccess(List<FriendDto> value) {
+                if (!isActive()) return;
                 received.clear();
                 if (value != null) received.addAll(value);
                 receivedAdapter.submit(toRequestItems(received, true));
@@ -193,8 +211,10 @@ public class FriendsActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 loading = false;
                 status.setText(message);
+                status.setOnClickListener(v -> loadAll());
             }
         });
     }
@@ -203,6 +223,7 @@ public class FriendsActivity extends AppCompatActivity {
         friendRepository.getSentRequestDtos(new RepositoryCallback<List<FriendDto>>() {
             @Override
             public void onSuccess(List<FriendDto> value) {
+                if (!isActive()) return;
                 sent.clear();
                 if (value != null) sent.addAll(value);
                 sentAdapter.submit(toRequestItems(sent, false));
@@ -212,8 +233,10 @@ public class FriendsActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 loading = false;
                 status.setText(message);
+                status.setOnClickListener(v -> loadAll());
             }
         });
     }
@@ -265,6 +288,7 @@ public class FriendsActivity extends AppCompatActivity {
     }
 
     private void searchUser() {
+        if (actionInFlight) return;
         String code = searchInput.getText().toString().trim();
         if (code.isEmpty()) {
             Toast.makeText(this, "請輸入 userCode", Toast.LENGTH_SHORT).show();
@@ -274,12 +298,14 @@ public class FriendsActivity extends AppCompatActivity {
         friendRepository.searchUser(code, new RepositoryCallback<SearchUserResult>() {
             @Override
             public void onSuccess(SearchUserResult value) {
+                if (!isActive()) return;
                 setSearchLoading(false);
                 renderSearchResult(value);
             }
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 setSearchLoading(false);
                 searchResult.removeAllViews();
                 status.setText(message);
@@ -430,6 +456,9 @@ public class FriendsActivity extends AppCompatActivity {
     }
 
     private void runAction(String message, Runnable action) {
+        if (actionInFlight) return;
+        actionInFlight = true;
+        searchButton.setEnabled(false);
         status.setText(message);
         action.run();
     }
@@ -446,6 +475,9 @@ public class FriendsActivity extends AppCompatActivity {
     private class EmptyCallback implements RepositoryCallback<EmptyResponse> {
         @Override
         public void onSuccess(EmptyResponse value) {
+            if (!isActive()) return;
+            actionInFlight = false;
+            searchButton.setEnabled(true);
             Toast.makeText(FriendsActivity.this, currentSuccessMessage, Toast.LENGTH_SHORT).show();
             searchResult.removeAllViews();
             loadAll();
@@ -453,6 +485,9 @@ public class FriendsActivity extends AppCompatActivity {
 
         @Override
         public void onError(String message) {
+            if (!isActive()) return;
+            actionInFlight = false;
+            searchButton.setEnabled(true);
             status.setText(message);
             Toast.makeText(FriendsActivity.this, message, Toast.LENGTH_SHORT).show();
         }
@@ -485,13 +520,20 @@ public class FriendsActivity extends AppCompatActivity {
     }
 
     private void openLogin() {
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
+        AppNavigator.openLoginAndClear(this);
     }
 
     private boolean same(String a, String b) {
         return a != null && b != null && !a.isEmpty() && a.equals(b);
+    }
+
+    private boolean isActive() {
+        return !destroyed && !isFinishing() && !isDestroyed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        destroyed = true;
+        super.onDestroy();
     }
 }

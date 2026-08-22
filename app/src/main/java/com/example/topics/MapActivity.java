@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log; // 💡 新增：用來印出連線錯誤訊息
 import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -44,12 +43,12 @@ import com.example.topics.data.model.EmptyResponse;
 import com.example.topics.data.model.ReactionUpdateData;
 import com.example.topics.data.model.SearchUserResult;
 import com.example.topics.data.model.UserDto;
-import com.example.topics.data.remote.ApiClient;
 import com.example.topics.data.remote.ImageUrlResolver;
 import com.example.topics.data.repository.DiaryRepository;
 import com.example.topics.data.repository.FriendRepository;
 import com.example.topics.data.repository.RepositoryCallback;
 import com.example.topics.data.repository.UserRepository;
+import com.example.topics.ui.common.AppNavigator;
 import com.example.topics.ui.design.AdriftSystemUi;
 import com.example.topics.ui.map.DiaryPreviewController;
 import com.example.topics.ui.map.MapMarkerManager;
@@ -72,8 +71,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-// 💡 新增：Retrofit 連線所需的套件
-
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private SessionManager sessionManager;
@@ -90,6 +87,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private boolean mapReady = false;
     private boolean locationPermissionRequested = false;
     private boolean isLocating = false;
+    private boolean destroyed = false;
 
     private View diaryCardView;
     private View mapBlurOverlay; // 新增遮罩層變數
@@ -188,7 +186,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         userRepository = new UserRepository(this);
         friendRepository = new FriendRepository(this);
         markerManager = new MapMarkerManager(this);
-        ApiClient.setAuthExpiredHandler(this::redirectToLogin);
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         locationPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
@@ -424,19 +421,19 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (mapNavFriends != null) {
             mapNavFriends.setOnClickListener(v -> {
                 selectMapNav("friends");
-                startActivity(new Intent(this, FriendsActivity.class));
+                AppNavigator.openTopLevel(this, FriendsActivity.class);
             });
         }
         if (mapNavExplore != null) {
             mapNavExplore.setOnClickListener(v -> {
                 selectMapNav("explore");
-                startActivity(new Intent(this, ExploreActivity.class));
+                AppNavigator.openTopLevel(this, ExploreActivity.class);
             });
         }
         if (mapNavSettings != null) {
             mapNavSettings.setOnClickListener(v -> {
                 selectMapNav("settings");
-                startActivity(new Intent(this, SettingsActivity.class));
+                AppNavigator.openTopLevel(this, SettingsActivity.class);
             });
         }
         selectMapNav("map");
@@ -555,6 +552,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         diaryRepository.deleteDiary(entry.id, new RepositoryCallback<EmptyResponse>() {
             @Override
             public void onSuccess(EmptyResponse value) {
+                if (!isActive()) return;
                 setDiaryLoading(false);
                 removeDiaryMarker(entry.id);
                 clearSelectedDiaryMarker();
@@ -567,6 +565,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 setDiaryLoading(false);
                 Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
             }
@@ -581,6 +580,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         diaryRepository.reactToDiary(entry.id, type, new RepositoryCallback<ReactionUpdateData>() {
             @Override
             public void onSuccess(ReactionUpdateData data) {
+                if (!isActive()) return;
                 setDiaryLoading(false);
                 entry.heartCount = data.getReactions().understand;
                 entry.smileCount = data.getReactions().hug;
@@ -592,6 +592,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
             @Override
             public void onError(String message) {
+                if (!isActive()) return;
                 setDiaryLoading(false);
                 Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
             }
@@ -718,7 +719,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
                 @Override
                 public void onError(String message) {
-                    android.util.Log.e("DIARY_DEBUG", "載入使用者失敗: " + message);
                 }
             });
         }
@@ -762,10 +762,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private void redirectToLogin() {
         if (sessionManager != null) sessionManager.clear();
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
+        AppNavigator.openLoginAndClear(this);
     }
     private void handleFilterClick(int filterType, Button btn) {
         if (currentFilter == filterType) {
@@ -1035,12 +1032,26 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     @Override
+    protected void onDestroy() {
+        destroyed = true;
+        if (mapStatusChip != null && mapStatusDismissRunnable != null) {
+            mapStatusChip.removeCallbacks(mapStatusDismissRunnable);
+            mapStatusDismissRunnable = null;
+        }
+        super.onDestroy();
+    }
+
+    private boolean isActive() {
+        return !destroyed && !isFinishing() && !isDestroyed();
+    }
+
+    @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mapReady = true;
         try {
             googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style_dark));
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception ignored) {}
 
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
         mMap.getUiSettings().setCompassEnabled(true);
@@ -1101,6 +1112,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         setLocationButtonState("locating");
         fusedLocationClient.getLastLocation()
                 .addOnSuccessListener(this, location -> {
+                    if (!isActive()) return;
                     isLocating = false;
                     if (location == null) {
                         showMapStatus("暫時無法取得目前位置", false);
@@ -1126,6 +1138,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     if (explicit) showMapStatus("已回到目前位置", false);
                 })
                 .addOnFailureListener(this, error -> {
+                    if (!isActive()) return;
                     isLocating = false;
                     showMapStatus("定位失敗，請稍後再試", false);
                     setLocationButtonState("error");
@@ -1200,6 +1213,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         diaryRepository.getDiaries(new RepositoryCallback<List<DiaryDto>>() {
             @Override
             public void onSuccess(List<DiaryDto> diaries) {
+                if (!isActive()) return;
                 if (mMap != null) {
                     mMap.clear();
                 }
@@ -1224,7 +1238,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
             @Override
             public void onError(String message) {
-                android.util.Log.e("MAP_LOAD", "讀取失敗: " + message);
+                if (!isActive()) return;
                 showMapStatus(message == null || message.isEmpty() ? "讀取地圖日記失敗" : message, true);
                 updateMapEmptyState();
             }
@@ -1234,8 +1248,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private void saveTrace() {
         if (isDiaryRequestInFlight) return;
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "請允許定位後再儲存日記", Toast.LENGTH_SHORT).show();
+            return;
+        }
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+            if (!isActive()) return;
             if (location != null) {
                 String title = (etDiaryTitle != null) ? etDiaryTitle.getText().toString().trim() : "";
                 String selectedMood = (moodSpinner != null) ? moodSpinner.getSelectedItem().toString() : "";
@@ -1257,6 +1275,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             } else {
                 Toast.makeText(this, "目前無法取得定位，請稍後再試", Toast.LENGTH_SHORT).show();
             }
+        }).addOnFailureListener(this, error -> {
+            if (!isActive()) return;
+            Toast.makeText(this, "目前無法取得定位，請稍後再試", Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -1276,6 +1297,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 new RepositoryCallback<DiaryDto>() {
                     @Override
                     public void onSuccess(DiaryDto diary) {
+                        if (!isActive()) return;
                         setDiaryLoading(false);
                         DiaryEntry entry = buildEntryFromDto(diary);
                         if (entry != null) addOrUpdateDiaryMarker(entry);
@@ -1291,6 +1313,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
                     @Override
                     public void onError(String message) {
+                        if (!isActive()) return;
                         setDiaryLoading(false);
                         Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
                     }
@@ -1316,6 +1339,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 new RepositoryCallback<DiaryDto>() {
                     @Override
                     public void onSuccess(DiaryDto diary) {
+                        if (!isActive()) return;
                         setDiaryLoading(false);
                         DiaryEntry entry = buildEntryFromDto(diary);
                         if (entry != null) {
@@ -1332,6 +1356,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
                     @Override
                     public void onError(String message) {
+                        if (!isActive()) return;
                         setDiaryLoading(false);
                         Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
                     }
@@ -1551,7 +1576,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         @Override
         public void onError(String message) {
-            Log.e("API_ERROR", message);
             if (emptyView != null) {
                 emptyView.setVisibility(View.VISIBLE);
                 emptyView.setText(message);
