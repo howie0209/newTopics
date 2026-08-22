@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.topics.data.model.UserDto;
 import com.example.topics.data.repository.AuthRepository;
 import com.example.topics.data.repository.RepositoryCallback;
+import com.example.topics.ui.design.AdriftSystemUi;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -30,6 +31,7 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
+        AdriftSystemUi.apply(this);
         authRepository = new AuthRepository(this);
 
         // 初始化背景地圖 fragment
@@ -81,7 +83,7 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
                     public void onSuccess(UserDto user) {
                         setLoading(false);
                         Toast.makeText(RegisterActivity.this, "註冊成功！", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(RegisterActivity.this, MapActivity.class);
+                        Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
                     }

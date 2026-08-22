@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false">
+        <shape>
+            <solid android:color="#668299A8" />
+            <corners android:radius="@dimen/radius_md" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape>
+            <solid android:color="@color/adrift_mint" />
+            <corners android:radius="@dimen/radius_md" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <gradient
+                android:angle="0"
+                android:startColor="@color/adrift_ocean"
+                android:centerColor="@color/adrift_accent"
+                android:endColor="@color/adrift_mint" />
+            <corners android:radius="@dimen/radius_md" />
+        </shape>
+    </item>
+</selector>

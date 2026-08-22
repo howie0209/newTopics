@@ -49,6 +49,7 @@ import com.example.topics.data.repository.DiaryRepository;
 import com.example.topics.data.repository.FriendRepository;
 import com.example.topics.data.repository.RepositoryCallback;
 import com.example.topics.data.repository.UserRepository;
+import com.example.topics.ui.design.AdriftSystemUi;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -94,6 +95,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private boolean isDiaryRequestInFlight = false;
 
     private TextView tabMine, tabFriends;
+    private TextView mapNavMap, mapNavFriends, mapNavExplore, mapNavSettings;
     private TextView tvCountMine, tvCountVisible;
     private Button btnPriv, btnFrdOnly, btnPub;
     private LinearLayout layoutMyDiaryRoot, layoutFriendManagement;
@@ -159,6 +161,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+        AdriftSystemUi.apply(this);
 
         sessionManager = SessionManager.getInstance(this);
         if (!sessionManager.hasToken()) {
@@ -180,6 +183,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         initNavigation();
         initToggleSwitch();
+        initAppNavigation();
 
         diaryCardView = findViewById(R.id.diary_bottom_sheet);
         mapBlurOverlay = findViewById(R.id.map_blur_overlay); // 初始化遮罩層
@@ -331,6 +335,59 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
         if (ivDiaryRemoteImage != null) {
             ivDiaryRemoteImage.setOnClickListener(v -> openCurrentImagePreview());
+        }
+        handleInitialTab();
+    }
+
+    private void initAppNavigation() {
+        mapNavMap = findViewById(R.id.map_nav_map);
+        mapNavFriends = findViewById(R.id.map_nav_friends);
+        mapNavExplore = findViewById(R.id.map_nav_explore);
+        mapNavSettings = findViewById(R.id.map_nav_settings);
+
+        if (mapNavMap != null) mapNavMap.setOnClickListener(v -> selectMapNav("map"));
+        if (mapNavFriends != null) {
+            mapNavFriends.setOnClickListener(v -> {
+                selectMapNav("friends");
+                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.END);
+                if (tabFriends != null) tabFriends.performClick();
+            });
+        }
+        if (mapNavExplore != null) {
+            mapNavExplore.setOnClickListener(v -> {
+                selectMapNav("explore");
+                View explore = findViewById(R.id.btn_switch_explore);
+                if (explore != null) explore.performClick();
+                Toast.makeText(this, "已切換探索視角", Toast.LENGTH_SHORT).show();
+            });
+        }
+        if (mapNavSettings != null) {
+            mapNavSettings.setOnClickListener(v -> {
+                selectMapNav("settings");
+                startActivity(new Intent(this, SettingsActivity.class));
+            });
+        }
+        selectMapNav("map");
+    }
+
+    private void handleInitialTab() {
+        String initialTab = getIntent().getStringExtra("initial_tab");
+        if ("friends".equals(initialTab) && mapNavFriends != null) {
+            mapNavFriends.performClick();
+        } else if ("explore".equals(initialTab) && mapNavExplore != null) {
+            mapNavExplore.performClick();
+        }
+    }
+
+    private void selectMapNav(String tab) {
+        TextView[] items = {mapNavMap, mapNavFriends, mapNavExplore, mapNavSettings};
+        String[] names = {"map", "friends", "explore", "settings"};
+        for (int i = 0; i < items.length; i++) {
+            TextView item = items[i];
+            if (item == null) continue;
+            boolean selected = names[i].equals(tab);
+            item.setSelected(selected);
+            item.setTextColor(selected ? Color.WHITE : Color.rgb(185, 217, 232));
         }
     }
 

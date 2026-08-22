@@ -32,4 +32,30 @@
     <!-- 原本的漸層色 (已根據風格微調為偏深色調) -->
     <color name="bg_gradient_start">#1A2232</color>
     <color name="bg_gradient_end">#0B121E</color>
+
+    <!-- Adrift semantic design tokens, aligned with iOS ocean/cyan/mint/ink and Web glass variables -->
+    <color name="adrift_background">#02050D</color>
+    <color name="adrift_background_alt">#061625</color>
+    <color name="adrift_surface">#0E1B2D</color>
+    <color name="adrift_surface_glass">#A80E1B2D</color>
+    <color name="adrift_surface_elevated">#16243A</color>
+
+    <color name="adrift_text_primary">#EDF8FF</color>
+    <color name="adrift_text_secondary">#B9D9E8</color>
+    <color name="adrift_text_tertiary">#94C2D6</color>
+
+    <color name="adrift_ocean">#1A73B3</color>
+    <color name="adrift_accent">#26BFDA</color>
+    <color name="adrift_accent_soft">#2679F1DC</color>
+    <color name="adrift_mint">#59D9B3</color>
+    <color name="adrift_indigo">#596BE6</color>
+
+    <color name="adrift_border">#29C4EBFF</color>
+    <color name="adrift_border_focus">#B826BFDA</color>
+    <color name="adrift_divider">#1FFFFFFF</color>
+
+    <color name="adrift_success">#52BD94</color>
+    <color name="adrift_warning">#F5B238</color>
+    <color name="adrift_error">#E06166</color>
+    <color name="adrift_disabled">#668299A8</color>
 </resources>

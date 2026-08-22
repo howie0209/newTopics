@@ -1,77 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_gradient"
-    android:padding="20dp">
+    android:background="@drawable/bg_adrift_background">
 
     <LinearLayout
-        android:id="@+id/layout_header"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="60dp"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:padding="@dimen/space_lg"
+        android:paddingBottom="112dp">
 
         <TextView
+            style="@style/Text.Adrift.Metadata"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="漂流足跡Adrift"
-            android:textColor="@color/primary_green"
-            android:textSize="28sp"
+            android:text="ADRIFT ANDROID"
+            android:textColor="@color/adrift_accent" />
+
+        <TextView
+            style="@style/Text.Adrift.LargeTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xs"
+            android:text="漂流足跡" />
+
+        <TextView
+            style="@style/Text.Adrift.BodySecondary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_sm"
+            android:text="在地圖、好友、探索與設定之間安靜切換。" />
+
+        <LinearLayout
+            android:id="@+id/shell_content"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/space_lg"
+            android:layout_weight="1"
+            android:background="@drawable/bg_adrift_glass"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/space_lg">
+
+            <TextView
+                android:id="@+id/tv_shell_kicker"
+                style="@style/Text.Adrift.Metadata"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MAP"
+                android:textColor="@color/adrift_accent" />
+
+            <TextView
+                android:id="@+id/tv_shell_title"
+                style="@style/Text.Adrift.Title1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_sm"
+                android:gravity="center"
+                android:text="地圖日記" />
+
+            <TextView
+                android:id="@+id/tv_shell_body"
+                style="@style/Text.Adrift.BodySecondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_md"
+                android:gravity="center"
+                android:text="回到你的地圖日記，沿著位置找回每一次停留。" />
+
+            <Button
+                android:id="@+id/btn_shell_primary"
+                style="@style/Widget.Adrift.Button.Primary"
+                android:layout_width="match_parent"
+                android:layout_marginTop="@dimen/space_lg"
+                android:text="開啟地圖" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/main_bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_nav_height"
+        android:layout_gravity="bottom"
+        android:layout_margin="@dimen/space_md"
+        android:background="@drawable/bg_adrift_bottom_nav"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="@dimen/space_xs">
+
+        <TextView
+            android:id="@+id/nav_map"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_adrift_nav_item"
+            android:gravity="center"
+            android:text="地圖"
+            android:textColor="@color/adrift_text_secondary"
             android:textStyle="bold" />
 
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:id="@+id/nav_friends"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_adrift_nav_item"
             android:gravity="center"
-            android:text="敬啟期待更多功能與更新，讓我們一同在漂流足跡Adrift"
-            android:textColor="@color/text_gray"
-            android:textSize="15sp" />
+            android:text="好友"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/nav_explore"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_adrift_nav_item"
+            android:gravity="center"
+            android:text="探索"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/nav_settings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_adrift_nav_item"
+            android:gravity="center"
+            android:text="設定"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
     </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/layout_header"
-        android:layout_marginTop="50dp"
-        android:orientation="vertical">
-
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_friends"
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="👥 好友列表"
-                android:textColor="@color/primary_green"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-        </androidx.cardview.widget.CardView>
-
-        <androidx.cardview.widget.CardView
-            android:id="@+id/card_my_diary"
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="📖 我的日記"
-                android:textColor="@color/primary_green"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-        </androidx.cardview.widget.CardView>
-
-    </LinearLayout>
-</RelativeLayout>
+</FrameLayout>

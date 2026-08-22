@@ -1,180 +1,164 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/dark_bg">
+    android:background="@drawable/bg_adrift_background">
 
-    <!-- 背景層：嵌入即時地圖 -->
     <fragment
         android:id="@+id/register_map_background"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- 遮罩層 -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#880B121E" />
+        android:background="#B802050D" />
 
-    <androidx.cardview.widget.CardView
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:layout_margin="20dp"
-        app:cardCornerRadius="20dp"
-        app:cardElevation="0dp"
-        app:cardBackgroundColor="@color/card_transparent"
-        app:cardUseCompatPadding="true">
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:padding="@dimen/space_lg">
 
-        <LinearLayout
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="28dp">
+            app:cardBackgroundColor="@color/adrift_surface_glass"
+            app:cardCornerRadius="@dimen/radius_xl"
+            app:cardElevation="18dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:gravity="center"
-                android:text="建立漂流身份"
-                android:textColor="@color/white"
-                android:textSize="26sp"
-                android:textStyle="bold" />
+                android:background="@drawable/bg_adrift_glass"
+                android:orientation="vertical"
+                android:padding="@dimen/space_lg">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="用戶名稱"
-                android:textColor="@color/cyan_primary"
-                android:textStyle="bold" />
+                <TextView
+                    style="@style/Text.Adrift.Metadata"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:text="CREATE IDENTITY"
+                    android:textColor="@color/adrift_accent" />
 
-            <!-- 修正後的 ID: et_register_username -->
-            <EditText
-                android:id="@+id/et_register_username"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/bg_edittext_dark"
-                android:hint="請輸入您的用戶名稱"
-                android:textColorHint="@color/hint_text"
-                android:textColor="@color/white"
-                android:paddingStart="12dp"
-                android:textSize="14sp" />
+                <TextView
+                    style="@style/Text.Adrift.LargeTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:gravity="center"
+                    android:text="建立 Adrift 身份" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="使用者 ID"
-                android:textColor="@color/cyan_primary"
-                android:textStyle="bold" />
+                <TextView
+                    style="@style/Text.Adrift.BodySecondary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:layout_marginBottom="@dimen/space_lg"
+                    android:gravity="center"
+                    android:text="讓日記、安全與好友同步到正式 Backend" />
 
-            <EditText
-                android:id="@+id/et_register_user_code"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/bg_edittext_dark"
-                android:hint="4-20 位英數、底線或連字號"
-                android:inputType="text"
-                android:paddingStart="12dp"
-                android:textColor="@color/white"
-                android:textColorHint="@color/hint_text"
-                android:textSize="14sp" />
+                <TextView
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="用戶名稱"
+                    android:textColor="@color/adrift_accent" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="電子郵件"
-                android:textColor="@color/cyan_primary"
-                android:textStyle="bold" />
+                <EditText
+                    android:id="@+id/et_register_username"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:layout_marginBottom="@dimen/space_md"
+                    android:hint="你的顯示名稱" />
 
-            <!-- 修正後的 ID: et_register_email -->
-            <EditText
-                android:id="@+id/et_register_email"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/bg_edittext_dark"
-                android:hint="請輸入您的電子郵件"
-                android:textColorHint="@color/hint_text"
-                android:textColor="@color/white"
-                android:inputType="textEmailAddress"
-                android:paddingStart="12dp"
-                android:textSize="14sp" />
+                <TextView
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="使用者 ID"
+                    android:textColor="@color/adrift_accent" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="密碼"
-                android:textColor="@color/cyan_primary"
-                android:textStyle="bold" />
+                <EditText
+                    android:id="@+id/et_register_user_code"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:layout_marginBottom="@dimen/space_md"
+                    android:hint="4-20 位英數、底線或連字號"
+                    android:inputType="text" />
 
-            <!-- 修正後的 ID: et_register_password -->
-            <EditText
-                android:id="@+id/et_register_password"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/bg_edittext_dark"
-                android:hint="請輸入您的密碼"
-                android:textColorHint="@color/hint_text"
-                android:textColor="@color/white"
-                android:inputType="textPassword"
-                android:paddingStart="12dp"
-                android:textSize="14sp" />
+                <TextView
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="電子郵件"
+                    android:textColor="@color/adrift_accent" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="確認密碼"
-                android:textColor="@color/cyan_primary"
-                android:textStyle="bold" />
+                <EditText
+                    android:id="@+id/et_register_email"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:layout_marginBottom="@dimen/space_md"
+                    android:hint="name@example.com"
+                    android:inputType="textEmailAddress" />
 
-            <EditText
-                android:id="@+id/reg_confirm_password"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="24dp"
-                android:background="@drawable/bg_edittext_dark"
-                android:hint="請再次輸入密碼"
-                android:textColorHint="@color/hint_text"
-                android:textColor="@color/white"
-                android:inputType="textPassword"
-                android:paddingStart="12dp"
-                android:textSize="14sp" />
+                <TextView
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="密碼"
+                    android:textColor="@color/adrift_accent" />
 
-            <Button
-                android:id="@+id/btn_register_submit"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:backgroundTint="@color/cyan_primary"
-                android:text="註冊"
-                android:textColor="@color/dark_bg"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                app:cornerRadius="10dp" />
+                <EditText
+                    android:id="@+id/et_register_password"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:layout_marginBottom="@dimen/space_md"
+                    android:hint="至少 6 個字元"
+                    android:inputType="textPassword" />
 
-            <TextView
-                android:id="@+id/tv_go_login"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginTop="20dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:text="已有帳號？登入"
-                android:textColor="@color/cyan_primary"
-                android:textSize="14sp" />
+                <TextView
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="確認密碼"
+                    android:textColor="@color/adrift_accent" />
 
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-</RelativeLayout>
+                <EditText
+                    android:id="@+id/reg_confirm_password"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:layout_marginBottom="@dimen/space_lg"
+                    android:hint="再次輸入密碼"
+                    android:inputType="textPassword" />
+
+                <Button
+                    android:id="@+id/btn_register_submit"
+                    style="@style/Widget.Adrift.Button.Primary"
+                    android:layout_width="match_parent"
+                    android:text="註冊" />
+
+                <TextView
+                    android:id="@+id/tv_go_login"
+                    style="@style/Text.Adrift.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/touch_target"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="@dimen/space_md"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="已有帳號？登入"
+                    android:textColor="@color/adrift_accent" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </ScrollView>
+</FrameLayout>

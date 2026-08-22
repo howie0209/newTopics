@@ -1,44 +1,104 @@
 package com.example.topics;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+
+import com.example.topics.data.local.SessionManager;
+import com.example.topics.ui.design.AdriftSystemUi;
 
 public class MainActivity extends AppCompatActivity {
-
-    private CardView cardFriends;
-    private CardView cardMyDiary;
+    private TextView navMap, navFriends, navExplore, navSettings;
+    private TextView kicker, title, body;
+    private Button primaryButton;
+    private String currentTab = "map";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        AdriftSystemUi.apply(this);
 
-        // 1. 初始化元件
-        initView();
+        if (!SessionManager.getInstance(this).hasToken()) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+            return;
+        }
 
-        // 2. 設定點擊監聽器
-        setListeners();
+        bindViews();
+        setupNavigation();
+        selectTab("map");
     }
 
-    private void initView() {
-        cardFriends = findViewById(R.id.card_friends);
-        cardMyDiary = findViewById(R.id.card_my_diary);
+    private void bindViews() {
+        navMap = findViewById(R.id.nav_map);
+        navFriends = findViewById(R.id.nav_friends);
+        navExplore = findViewById(R.id.nav_explore);
+        navSettings = findViewById(R.id.nav_settings);
+        kicker = findViewById(R.id.tv_shell_kicker);
+        title = findViewById(R.id.tv_shell_title);
+        body = findViewById(R.id.tv_shell_body);
+        primaryButton = findViewById(R.id.btn_shell_primary);
     }
 
-    private void setListeners() {
-        // 點擊「好友列表」
-        cardFriends.setOnClickListener(v -> {
-            // 目前跳轉到註冊頁面測試
-            Intent intent = new Intent(MainActivity.this, RegisterActivity.class);
-            startActivity(intent);
-        });
+    private void setupNavigation() {
+        navMap.setOnClickListener(v -> selectTab("map"));
+        navFriends.setOnClickListener(v -> selectTab("friends"));
+        navExplore.setOnClickListener(v -> selectTab("explore"));
+        navSettings.setOnClickListener(v -> selectTab("settings"));
+        primaryButton.setOnClickListener(v -> openSelectedTab());
+    }
 
-        // 點擊「我的日記」-> 跳轉到地圖頁面 (MapActivity)
-        cardMyDiary.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, MapActivity.class);
+    private void selectTab(String tab) {
+        currentTab = tab;
+        navMap.setSelected("map".equals(tab));
+        navFriends.setSelected("friends".equals(tab));
+        navExplore.setSelected("explore".equals(tab));
+        navSettings.setSelected("settings".equals(tab));
+
+        int active = Color.WHITE;
+        int inactive = Color.rgb(185, 217, 232);
+        navMap.setTextColor("map".equals(tab) ? active : inactive);
+        navFriends.setTextColor("friends".equals(tab) ? active : inactive);
+        navExplore.setTextColor("explore".equals(tab) ? active : inactive);
+        navSettings.setTextColor("settings".equals(tab) ? active : inactive);
+
+        if ("friends".equals(tab)) {
+            kicker.setText("FRIENDS");
+            title.setText("好友網絡");
+            body.setText("查看邀請、搜尋使用者，整理與你同行的人。");
+            primaryButton.setText("前往好友");
+        } else if ("explore".equals(tab)) {
+            kicker.setText("EXPLORE");
+            title.setText("探索附近記憶");
+            body.setText("切換到探索視角，看見附近公開漂流的片段。");
+            primaryButton.setText("開啟探索");
+        } else if ("settings".equals(tab)) {
+            kicker.setText("SETTINGS");
+            title.setText("帳號設定");
+            body.setText("管理個人資料、Email、密碼與危險操作。");
+            primaryButton.setText("開啟設定");
+        } else {
+            kicker.setText("MAP");
+            title.setText("地圖日記");
+            body.setText("回到你的地圖日記，沿著位置找回每一次停留。");
+            primaryButton.setText("開啟地圖");
+        }
+    }
+
+    private void openSelectedTab() {
+        if ("settings".equals(currentTab)) {
+            startActivity(new Intent(this, SettingsActivity.class));
+        } else {
+            Intent intent = new Intent(this, MapActivity.class);
+            intent.putExtra("initial_tab", currentTab);
             startActivity(intent);
-        });
+        }
     }
 }

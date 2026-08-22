@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Text" />
+    <style name="Widget" />
+    <style name="Text.Adrift" />
+    <style name="Widget.Adrift" />
+
+    <style name="Text.Adrift.Display">
+        <item name="android:textColor">@color/adrift_text_primary</item>
+        <item name="android:textSize">32sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+
+    <style name="Text.Adrift.LargeTitle">
+        <item name="android:textColor">@color/adrift_text_primary</item>
+        <item name="android:textSize">26sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Text.Adrift.Title1">
+        <item name="android:textColor">@color/adrift_text_primary</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Text.Adrift.Title2">
+        <item name="android:textColor">@color/adrift_text_primary</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Text.Adrift.Headline">
+        <item name="android:textColor">@color/adrift_text_primary</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Text.Adrift.Body">
+        <item name="android:textColor">@color/adrift_text_primary</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="Text.Adrift.BodySecondary">
+        <item name="android:textColor">@color/adrift_text_secondary</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="Text.Adrift.Caption">
+        <item name="android:textColor">@color/adrift_text_tertiary</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="Text.Adrift.Metadata">
+        <item name="android:textColor">@color/adrift_text_tertiary</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <style name="Text.Adrift.Button">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="Widget.Adrift.Input">
+        <item name="android:layout_height">@dimen/input_height</item>
+        <item name="android:background">@drawable/bg_adrift_input</item>
+        <item name="android:textColor">@color/adrift_text_primary</item>
+        <item name="android:textColorHint">@color/adrift_text_tertiary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:paddingStart">@dimen/space_md</item>
+        <item name="android:paddingEnd">@dimen/space_md</item>
+    </style>
+
+    <style name="Widget.Adrift.Button" />
+
+    <style name="Widget.Adrift.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">@dimen/button_height</item>
+        <item name="android:background">@drawable/bg_adrift_button_primary</item>
+        <item name="android:textColor">@color/adrift_background</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@null</item>
+        <item name="cornerRadius">@dimen/radius_md</item>
+    </style>
+
+    <style name="Widget.Adrift.Button.Secondary" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">@dimen/button_height</item>
+        <item name="android:background">@drawable/bg_adrift_button_secondary</item>
+        <item name="android:textColor">@color/adrift_text_primary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@null</item>
+        <item name="cornerRadius">@dimen/radius_md</item>
+    </style>
+
+    <style name="Widget.Adrift.Button.Danger" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">@dimen/button_height</item>
+        <item name="android:background">@drawable/bg_adrift_button_danger</item>
+        <item name="android:textColor">@color/adrift_error</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@null</item>
+        <item name="cornerRadius">@dimen/radius_md</item>
+    </style>
+</resources>

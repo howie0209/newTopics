@@ -16,6 +16,7 @@ import com.example.topics.data.model.EmptyResponse;
 import com.example.topics.data.model.UserDto;
 import com.example.topics.data.repository.RepositoryCallback;
 import com.example.topics.data.repository.UserRepository;
+import com.example.topics.ui.design.AdriftSystemUi;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -31,6 +32,7 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        AdriftSystemUi.apply(this);
 
         userRepository = new UserRepository(this);
         sessionManager = SessionManager.getInstance(this);
