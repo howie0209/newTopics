@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/space_sm"
+    android:background="@drawable/bg_adrift_card"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="@dimen/space_sm">
+
+    <FrameLayout
+        android:layout_width="46dp"
+        android:layout_height="46dp">
+
+        <ImageView
+            android:id="@+id/iv_social_avatar"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_adrift_avatar"
+            android:contentDescription="使用者頭像"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_social_avatar"
+            style="@style/Text.Adrift.Headline"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_adrift_avatar"
+            android:gravity="center"
+            android:text="A" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/space_sm"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_social_name"
+            style="@style/Text.Adrift.Headline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="使用者" />
+
+        <TextView
+            android:id="@+id/tv_social_meta"
+            style="@style/Text.Adrift.Metadata"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:maxLines="2"
+            android:text="@user" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="end|center_vertical"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/btn_social_primary"
+            style="@style/Widget.Adrift.Button.Secondary"
+            android:layout_width="96dp"
+            android:layout_height="38dp"
+            android:minHeight="0dp"
+            android:text="查看"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btn_social_secondary"
+            style="@style/Widget.Adrift.Button.Danger"
+            android:layout_width="96dp"
+            android:layout_height="38dp"
+            android:layout_marginTop="@dimen/space_xs"
+            android:minHeight="0dp"
+            android:text="移除"
+            android:textSize="12sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</LinearLayout>

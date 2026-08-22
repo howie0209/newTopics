@@ -7,6 +7,7 @@ import com.example.topics.data.model.DiaryDto;
 import com.example.topics.data.model.DiaryListData;
 import com.example.topics.data.model.EmptyResponse;
 import com.example.topics.data.model.FriendDto;
+import com.example.topics.data.model.FriendProfileDto;
 import com.example.topics.data.model.FriendRequestBody;
 import com.example.topics.data.model.LoginRequest;
 import com.example.topics.data.model.RegisterRequest;
@@ -119,4 +120,7 @@ public interface ApiService {
 
     @DELETE("friends/{friendId}")
     Call<ApiResponse<EmptyResponse>> deleteFriend(@Path("friendId") String friendId);
+
+    @GET("friends/{friendId}/profile")
+    Call<ApiResponse<FriendProfileDto>> getFriendProfile(@Path("friendId") String friendId);
 }

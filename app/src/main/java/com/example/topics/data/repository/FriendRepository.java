@@ -6,6 +6,7 @@ import com.example.topics.FriendRecord;
 import com.example.topics.data.model.ApiResponse;
 import com.example.topics.data.model.EmptyResponse;
 import com.example.topics.data.model.FriendDto;
+import com.example.topics.data.model.FriendProfileDto;
 import com.example.topics.data.model.FriendRequestBody;
 import com.example.topics.data.model.SearchUserResult;
 import com.example.topics.data.model.UserDto;
@@ -45,12 +46,24 @@ public class FriendRepository extends BaseRepository {
         api.getFriends().enqueue(listCallback(callback, "accepted"));
     }
 
+    public void getFriendDtos(RepositoryCallback<List<FriendDto>> callback) {
+        api.getFriends().enqueue(rawListCallback(callback));
+    }
+
     public void getReceivedRequests(RepositoryCallback<List<FriendRecord>> callback) {
         api.getFriendRequests().enqueue(listCallback(callback, "received"));
     }
 
+    public void getReceivedRequestDtos(RepositoryCallback<List<FriendDto>> callback) {
+        api.getFriendRequests().enqueue(rawListCallback(callback));
+    }
+
     public void getSentRequests(RepositoryCallback<List<FriendRecord>> callback) {
         api.getSentFriendRequests().enqueue(listCallback(callback, "sent"));
+    }
+
+    public void getSentRequestDtos(RepositoryCallback<List<FriendDto>> callback) {
+        api.getSentFriendRequests().enqueue(rawListCallback(callback));
     }
 
     public void acceptRequest(String requestId, RepositoryCallback<EmptyResponse> callback) {
@@ -67,6 +80,20 @@ public class FriendRepository extends BaseRepository {
 
     public void deleteFriend(String friendId, RepositoryCallback<EmptyResponse> callback) {
         api.deleteFriend(friendId).enqueue(emptyCallback(callback));
+    }
+
+    public void getFriendProfile(String friendId, RepositoryCallback<FriendProfileDto> callback) {
+        api.getFriendProfile(friendId).enqueue(new Callback<ApiResponse<FriendProfileDto>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<FriendProfileDto>> call, Response<ApiResponse<FriendProfileDto>> response) {
+                dispatchIfSuccessful(response, callback);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<FriendProfileDto>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
     }
 
     private Callback<ApiResponse<List<FriendDto>>> listCallback(RepositoryCallback<List<FriendRecord>> callback, String type) {
@@ -103,6 +130,25 @@ public class FriendRepository extends BaseRepository {
 
             @Override
             public void onFailure(Call<ApiResponse<EmptyResponse>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        };
+    }
+
+    private Callback<ApiResponse<List<FriendDto>>> rawListCallback(RepositoryCallback<List<FriendDto>> callback) {
+        return new Callback<ApiResponse<List<FriendDto>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<FriendDto>>> call, Response<ApiResponse<List<FriendDto>>> response) {
+                ApiResponse<List<FriendDto>> body = response.body();
+                if (response.isSuccessful() && body != null && body.success) {
+                    callback.onSuccess(body.data == null ? new ArrayList<>() : body.data);
+                    return;
+                }
+                callback.onError(extractMessage(response, body));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<FriendDto>>> call, Throwable t) {
                 callback.onError(networkMessage(t));
             }
         };

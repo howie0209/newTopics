@@ -116,6 +116,13 @@ public class SettingsActivity extends AppCompatActivity {
 
         // 4. 危險區域：刪除帳號
         findViewById(R.id.header_danger_zone).setOnClickListener(v -> showDeleteAccountDialog());
+        findViewById(R.id.header_logout).setOnClickListener(v -> showLogoutDialog());
+        findViewById(R.id.settings_nav_map).setOnClickListener(v -> {
+            startActivity(new Intent(this, MapActivity.class));
+            finish();
+        });
+        findViewById(R.id.settings_nav_friends).setOnClickListener(v -> startActivity(new Intent(this, FriendsActivity.class)));
+        findViewById(R.id.settings_nav_explore).setOnClickListener(v -> startActivity(new Intent(this, ExploreActivity.class)));
     }
 
     // 控制面板展開的輔助方法 (一次只展開一個)
@@ -194,6 +201,15 @@ public class SettingsActivity extends AppCompatActivity {
         Intent intent = new Intent(this, LoginActivity.class); // 換成你的登入頁面類別
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
+    }
+
+    private void showLogoutDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("登出")
+                .setMessage("確定要登出目前帳號嗎？")
+                .setPositiveButton("登出", (dialog, which) -> logoutUser())
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private class UserCallback implements RepositoryCallback<UserDto> {

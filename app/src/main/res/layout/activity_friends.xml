@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_adrift_background"
+    android:orientation="vertical"
+    android:padding="@dimen/space_md">
+
+    <TextView
+        style="@style/Text.Adrift.Title1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="好友" />
+
+    <TextView
+        android:id="@+id/tv_friends_status"
+        style="@style/Text.Adrift.BodySecondary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_xs"
+        android:text="同步好友資料中" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="@dimen/space_md"
+        android:background="@drawable/bg_adrift_bottom_nav"
+        android:orientation="horizontal"
+        android:padding="3dp">
+
+        <TextView
+            android:id="@+id/tab_friends_search"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="搜尋"
+            android:textColor="@color/adrift_text_primary"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tab_friends_list"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="好友"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tab_friends_received"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="收到"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tab_friends_sent"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="送出"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="@dimen/space_md"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:id="@+id/panel_friend_search"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/input_height"
+                android:background="@drawable/bg_adrift_input"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/space_sm">
+
+                <EditText
+                    android:id="@+id/et_friend_code"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="輸入 userCode 精準搜尋"
+                    android:inputType="text"
+                    android:singleLine="true" />
+
+                <Button
+                    android:id="@+id/btn_friend_search"
+                    style="@style/Widget.Adrift.Button.Secondary"
+                    android:layout_width="88dp"
+                    android:layout_height="40dp"
+                    android:minHeight="0dp"
+                    android:text="搜尋"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/layout_search_result"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_md" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_friends"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_received"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_sent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_nav_height"
+        android:layout_marginTop="@dimen/space_md"
+        android:background="@drawable/bg_adrift_bottom_nav"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="@dimen/space_xs">
+
+        <TextView
+            android:id="@+id/friends_nav_map"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="地圖"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/friends_nav_friends"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_adrift_nav_item"
+            android:gravity="center"
+            android:text="好友"
+            android:textColor="@color/adrift_text_primary"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/friends_nav_explore"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="探索"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/friends_nav_settings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="設定"
+            android:textColor="@color/adrift_text_secondary"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

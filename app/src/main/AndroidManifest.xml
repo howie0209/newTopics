@@ -21,6 +21,15 @@
             android:name=".SettingsActivity"
             android:exported="false" />
         <activity
+            android:name=".ProfileActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ExploreActivity"
+            android:exported="false" />
+        <activity
+            android:name=".FriendsActivity"
+            android:exported="false" />
+        <activity
             android:name=".ImagePreviewActivity"
             android:exported="false" />
         <activity

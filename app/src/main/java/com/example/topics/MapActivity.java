@@ -424,16 +424,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (mapNavFriends != null) {
             mapNavFriends.setOnClickListener(v -> {
                 selectMapNav("friends");
-                if (drawerLayout != null) drawerLayout.openDrawer(GravityCompat.END);
-                if (tabFriends != null) tabFriends.performClick();
+                startActivity(new Intent(this, FriendsActivity.class));
             });
         }
         if (mapNavExplore != null) {
             mapNavExplore.setOnClickListener(v -> {
                 selectMapNav("explore");
-                View explore = findViewById(R.id.btn_switch_explore);
-                if (explore != null) explore.performClick();
-                Toast.makeText(this, "已切換探索視角", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, ExploreActivity.class));
             });
         }
         if (mapNavSettings != null) {
@@ -612,6 +609,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             btnFrdOnly = navView.findViewById(R.id.filter_friends);
             btnPub = navView.findViewById(R.id.filter_public);
             rvDiaryList = navView.findViewById(R.id.rv_diary_history);
+            View openFriendsPage = navView.findViewById(R.id.btn_open_friends_page);
+            if (openFriendsPage != null) {
+                openFriendsPage.setOnClickListener(v -> startActivity(new Intent(this, FriendsActivity.class)));
+            }
 
             layoutMyDiaryRoot = navView.findViewById(R.id.layout_my_diary_root);
             layoutFriendManagement = navView.findViewById(R.id.layout_friend_management);

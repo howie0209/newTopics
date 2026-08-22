@@ -58,6 +58,25 @@ public class DiaryRepository extends BaseRepository {
         });
     }
 
+    public void getExploreDiaries(double lat, double lng, int radius, RepositoryCallback<List<DiaryDto>> callback) {
+        api.getExploreDiaries(lat, lng, radius).enqueue(new Callback<ApiResponse<List<DiaryDto>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<DiaryDto>>> call, Response<ApiResponse<List<DiaryDto>>> response) {
+                ApiResponse<List<DiaryDto>> body = response.body();
+                if (response.isSuccessful() && body != null && body.success) {
+                    callback.onSuccess(body.data);
+                    return;
+                }
+                callback.onError(extractMessage(response, body));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<DiaryDto>>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
+    }
+
     public void createDiary(
             String title,
             String text,
