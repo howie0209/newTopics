@@ -9,6 +9,7 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log; // 💡 新增：用來印出連線錯誤訊息
+import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,6 +51,8 @@ import com.example.topics.data.repository.FriendRepository;
 import com.example.topics.data.repository.RepositoryCallback;
 import com.example.topics.data.repository.UserRepository;
 import com.example.topics.ui.design.AdriftSystemUi;
+import com.example.topics.ui.map.DiaryPreviewController;
+import com.example.topics.ui.map.MapMarkerManager;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -60,6 +63,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.material.navigation.NavigationView;
 
 import java.util.ArrayList;
@@ -76,10 +80,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private DiaryRepository diaryRepository;
     private UserRepository userRepository;
     private FriendRepository friendRepository;
+    private MapMarkerManager markerManager;
+    private DiaryPreviewController previewController;
 
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
     private DrawerLayout drawerLayout;
+    private ActivityResultLauncher<String> locationPermissionLauncher;
+    private boolean mapReady = false;
+    private boolean locationPermissionRequested = false;
+    private boolean isLocating = false;
 
     private View diaryCardView;
     private View mapBlurOverlay; // 新增遮罩層變數
@@ -96,6 +106,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private TextView tabMine, tabFriends;
     private TextView mapNavMap, mapNavFriends, mapNavExplore, mapNavSettings;
+    private ImageButton btnCurrentLocation;
+    private View mapStatusChip, mapEmptyChip, mapIdentityChip;
+    private TextView tvMapStatus, btnRetryDiaries, tvMapIdentityName, tvMapIdentityCode, tvMapIdentityAvatar;
+    private ImageView ivMapIdentityAvatar;
+    private Runnable mapStatusDismissRunnable;
     private TextView tvCountMine, tvCountVisible;
     private Button btnPriv, btnFrdOnly, btnPub;
     private LinearLayout layoutMyDiaryRoot, layoutFriendManagement;
@@ -119,6 +134,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private Map<String, Marker> diaryMarkerMap = new HashMap<>();
     private Map<String, String> markerDiaryIdMap = new HashMap<>();
     private Marker lastSelectedMarker = null;
+    private String selectedDiaryId = null;
     public String username; // 🎯 專門用來放名字
 
 
@@ -171,9 +187,25 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         diaryRepository = new DiaryRepository(this);
         userRepository = new UserRepository(this);
         friendRepository = new FriendRepository(this);
+        markerManager = new MapMarkerManager(this);
         ApiClient.setAuthExpiredHandler(this::redirectToLogin);
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        locationPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    locationPermissionRequested = true;
+                    if (granted) {
+                        enableMyLocationLayer();
+                        locateUser(true);
+                    } else {
+                        showMapStatus("無法使用定位，仍可瀏覽地圖日記", false);
+                        setLocationButtonState("error");
+                    }
+                }
+        );
 
         drawerLayout = findViewById(R.id.drawer_layout);
+        initMapHud();
         ImageButton btnOpenDrawer = findViewById(R.id.btn_open_drawer);
         if (btnOpenDrawer != null) {
             btnOpenDrawer.setOnClickListener(v -> {
@@ -222,7 +254,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         View fabAdd = findViewById(R.id.btn_top_add_diary);
         if (fabAdd != null) {
             fabAdd.setOnClickListener(v -> {
-                lastSelectedMarker = null;
+                clearSelectedDiaryMarker();
                 clearDiaryForm();
                 setDiaryFieldsEnabled(true);
 
@@ -239,8 +271,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 showDiaryCard("新增日記");
             });
         }
-
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         if (rvImagePreview != null) {
             rvImagePreview.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -336,7 +366,52 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (ivDiaryRemoteImage != null) {
             ivDiaryRemoteImage.setOnClickListener(v -> openCurrentImagePreview());
         }
+        if (previewController != null) {
+            previewController.setOnOpenListener(v -> {
+                DiaryEntry entry = getCurrentDiaryEntry();
+                if (entry != null) {
+                    showDiaryCard(entry.isMine && entry.canEdit ? "編輯日記" : "閱讀日記");
+                    bindDiaryToSheet(entry);
+                }
+            });
+            previewController.setOnCloseListener(v -> clearSelectedDiaryMarker());
+        }
         handleInitialTab();
+    }
+
+    private void initMapHud() {
+        btnCurrentLocation = findViewById(R.id.btn_current_location);
+        mapStatusChip = findViewById(R.id.map_status_chip);
+        mapEmptyChip = findViewById(R.id.map_empty_chip);
+        tvMapStatus = findViewById(R.id.tv_map_status);
+        btnRetryDiaries = findViewById(R.id.btn_retry_diaries);
+        mapIdentityChip = findViewById(R.id.map_identity_chip);
+        tvMapIdentityName = findViewById(R.id.tv_map_identity_name);
+        tvMapIdentityCode = findViewById(R.id.tv_map_identity_code);
+        tvMapIdentityAvatar = findViewById(R.id.tv_map_identity_avatar);
+        ivMapIdentityAvatar = findViewById(R.id.iv_map_identity_avatar);
+        previewController = new DiaryPreviewController(this);
+
+        if (btnCurrentLocation != null) {
+            btnCurrentLocation.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                clearSelectedDiaryMarker();
+                locateUser(true);
+            });
+        }
+        if (btnRetryDiaries != null) {
+            btnRetryDiaries.setOnClickListener(v -> loadDiariesFromServer());
+        }
+        if (mapEmptyChip != null) {
+            mapEmptyChip.setOnClickListener(v -> {
+                View add = findViewById(R.id.btn_top_add_diary);
+                if (add != null) add.performClick();
+            });
+        }
+        if (mapIdentityChip != null) {
+            mapIdentityChip.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        }
+        bindMapIdentity(sessionManager == null ? null : sessionManager.getUser());
     }
 
     private void initAppNavigation() {
@@ -439,25 +514,27 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         if (btnSwitchMine != null && btnSwitchExplore != null) {
             btnSwitchMine.setOnClickListener(v -> {
-                btnSwitchMine.setBackgroundResource(R.drawable.bg_login_card);
+                btnSwitchMine.setBackgroundResource(R.drawable.bg_adrift_nav_item);
                 btnSwitchMine.setTextColor(Color.WHITE);
                 btnSwitchExplore.setBackground(null);
-                TextView tvExp = (TextView) btnSwitchExplore.getChildAt(1);
-                ImageView ivExp = (ImageView) btnSwitchExplore.getChildAt(0);
-                tvExp.setTextColor(Color.parseColor("#99FFFFFF"));
-                ivExp.setImageTintList(ColorStateList.valueOf(Color.parseColor("#99FFFFFF")));
+                TextView tvExp = getExploreSwitchText(btnSwitchExplore);
+                if (tvExp != null) tvExp.setTextColor(Color.parseColor("#99FFFFFF"));
             });
 
             btnSwitchExplore.setOnClickListener(v -> {
-                btnSwitchExplore.setBackgroundResource(R.drawable.bg_login_card);
-                TextView tvExp = (TextView) btnSwitchExplore.getChildAt(1);
-                ImageView ivExp = (ImageView) btnSwitchExplore.getChildAt(0);
-                tvExp.setTextColor(Color.WHITE);
-                ivExp.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+                btnSwitchExplore.setBackgroundResource(R.drawable.bg_adrift_nav_item);
+                TextView tvExp = getExploreSwitchText(btnSwitchExplore);
+                if (tvExp != null) tvExp.setTextColor(Color.WHITE);
                 btnSwitchMine.setBackground(null);
                 btnSwitchMine.setTextColor(Color.parseColor("#99FFFFFF"));
             });
         }
+    }
+
+    private TextView getExploreSwitchText(LinearLayout btnSwitchExplore) {
+        if (btnSwitchExplore == null || btnSwitchExplore.getChildCount() == 0) return null;
+        View child = btnSwitchExplore.getChildAt(btnSwitchExplore.getChildCount() - 1);
+        return child instanceof TextView ? (TextView) child : null;
     }
 
     private void confirmDeleteCurrentDiary() {
@@ -483,10 +560,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             public void onSuccess(EmptyResponse value) {
                 setDiaryLoading(false);
                 removeDiaryMarker(entry.id);
-                lastSelectedMarker = null;
+                clearSelectedDiaryMarker();
                 hideDiaryCard();
                 updateStatistics();
                 updateDiaryList();
+                updateMapEmptyState();
                 Toast.makeText(MapActivity.this, "日記已刪除", Toast.LENGTH_SHORT).show();
             }
 
@@ -651,6 +729,34 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (name != null) name.setText(displayName);
         if (code != null) code.setText("@" + user.getUserCode());
         if (avatar != null && !displayName.isEmpty()) avatar.setText(displayName.substring(0, 1));
+        bindMapIdentity(user);
+    }
+
+    private void bindMapIdentity(UserDto user) {
+        if (user == null) return;
+        String displayName = user.getDisplayName();
+        String userCode = user.getUserCode();
+        if (tvMapIdentityName != null) tvMapIdentityName.setText(displayName);
+        if (tvMapIdentityCode != null) tvMapIdentityCode.setText(userCode.isEmpty() ? "@adrift" : "@" + userCode);
+
+        String firstLetter = displayName.isEmpty() ? "A" : displayName.substring(0, 1);
+        if (tvMapIdentityAvatar != null) tvMapIdentityAvatar.setText(firstLetter);
+        if (ivMapIdentityAvatar == null || tvMapIdentityAvatar == null) return;
+
+        if (user.avatar != null && !user.avatar.trim().isEmpty()) {
+            ivMapIdentityAvatar.setVisibility(View.VISIBLE);
+            tvMapIdentityAvatar.setVisibility(View.GONE);
+            Glide.with(this)
+                    .load(ImageUrlResolver.resolve(user.avatar))
+                    .placeholder(R.drawable.bg_adrift_avatar)
+                    .error(R.drawable.bg_adrift_avatar)
+                    .centerCrop()
+                    .into(ivMapIdentityAvatar);
+        } else {
+            Glide.with(this).clear(ivMapIdentityAvatar);
+            ivMapIdentityAvatar.setVisibility(View.GONE);
+            tvMapIdentityAvatar.setVisibility(View.VISIBLE);
+        }
     }
 
     private void redirectToLogin() {
@@ -719,6 +825,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     private DiaryEntry getCurrentDiaryEntry() {
+        if (selectedDiaryId != null && markerDataMap.containsKey(selectedDiaryId)) {
+            return markerDataMap.get(selectedDiaryId);
+        }
         if (lastSelectedMarker == null) return null;
         String diaryId = markerDiaryIdMap.get(lastSelectedMarker.getId());
         if (diaryId == null) return markerDataMap.get(lastSelectedMarker.getId());
@@ -733,6 +842,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             marker.remove();
         }
         markerDataMap.remove(diaryId);
+        if (diaryId.equals(selectedDiaryId)) {
+            selectedDiaryId = null;
+            if (previewController != null) previewController.hide(getResources().getInteger(R.integer.motion_fast));
+        }
     }
 
     private void addOrUpdateDiaryMarker(DiaryEntry entry) {
@@ -741,13 +854,83 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         Marker marker = mMap.addMarker(new MarkerOptions()
                 .position(entry.location)
                 .title(entry.title == null || entry.title.isEmpty() ? entry.mood : entry.title)
-                .snippet(entry.mood));
+                .snippet(entry.mood)
+                .anchor(0.5f, 0.5f)
+                .icon(markerManager.iconFor(entry.mood, entry.isMine, entry.id.equals(selectedDiaryId))));
         if (marker != null) {
             markerDataMap.put(entry.id, entry);
             diaryMarkerMap.put(entry.id, marker);
             markerDiaryIdMap.put(marker.getId(), entry.id);
-            lastSelectedMarker = marker;
         }
+    }
+
+    private void selectDiaryMarker(String diaryId, boolean animateCamera) {
+        if (diaryId == null || diaryId.isEmpty()) return;
+        String previousId = selectedDiaryId;
+        selectedDiaryId = diaryId;
+        refreshMarkerIcon(previousId);
+        refreshMarkerIcon(selectedDiaryId);
+
+        Marker marker = diaryMarkerMap.get(diaryId);
+        DiaryEntry entry = markerDataMap.get(diaryId);
+        if (marker != null) lastSelectedMarker = marker;
+        if (entry == null) return;
+
+        if (previewController != null) previewController.show(buildPreviewData(entry), getResources().getInteger(R.integer.motion_normal));
+        if (animateCamera) focusCameraForPreview(entry);
+        View root = findViewById(R.id.drawer_layout);
+        if (root != null) root.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+    }
+
+    private void clearSelectedDiaryMarker() {
+        String previousId = selectedDiaryId;
+        selectedDiaryId = null;
+        lastSelectedMarker = null;
+        refreshMarkerIcon(previousId);
+        if (previewController != null) previewController.hide(getResources().getInteger(R.integer.motion_normal));
+        if (mMap != null) mMap.setPadding(0, 0, 0, 0);
+    }
+
+    private void refreshMarkerIcon(String diaryId) {
+        if (diaryId == null || diaryId.isEmpty()) return;
+        Marker marker = diaryMarkerMap.get(diaryId);
+        DiaryEntry entry = markerDataMap.get(diaryId);
+        if (marker != null && entry != null && markerManager != null) {
+            marker.setIcon(markerManager.iconFor(entry.mood, entry.isMine, diaryId.equals(selectedDiaryId)));
+            marker.setAnchor(0.5f, 0.5f);
+        }
+    }
+
+    private DiaryPreviewController.PreviewData buildPreviewData(DiaryEntry entry) {
+        DiaryPreviewController.PreviewData data = new DiaryPreviewController.PreviewData();
+        data.title = entry.title == null || entry.title.isEmpty() ? entry.mood : entry.title;
+        data.text = entry.text == null ? "" : entry.text;
+        String author = entry.authorName == null || entry.authorName.isEmpty() ? "Adrift 使用者" : entry.authorName;
+        data.author = "@" + author;
+        String place = entry.placeName == null || entry.placeName.isEmpty() ? "地圖日記" : entry.placeName;
+        data.meta = place + " · " + formatDate(entry.time);
+        data.mood = entry.mood + " · 強度 " + entry.intensity;
+        data.reactions = "懂 " + entry.heartCount + " · 抱 " + entry.smileCount + " · 共鳴 " + entry.surpriseCount;
+        data.imageUrl = entry.imageUrl;
+        return data;
+    }
+
+    private void focusCameraForPreview(DiaryEntry entry) {
+        if (mMap == null || entry == null) return;
+        int bottomPadding = (int) (getResources().getDisplayMetrics().density * 230f);
+        mMap.setPadding(0, 0, 0, bottomPadding);
+        float zoom = Math.max(mMap.getCameraPosition().zoom, 15f);
+        CameraPosition position = new CameraPosition.Builder()
+                .target(entry.location)
+                .zoom(zoom)
+                .tilt(34f)
+                .bearing(mMap.getCameraPosition().bearing)
+                .build();
+        mMap.animateCamera(
+                CameraUpdateFactory.newCameraPosition(position),
+                getResources().getInteger(R.integer.motion_slow),
+                null
+        );
     }
 
     private DiaryEntry buildEntryFromDto(DiaryDto diary) {
@@ -845,33 +1028,174 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (mapReady) enableMyLocationLayer();
+    }
+
+    @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mapReady = true;
         try {
             googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style_dark));
         } catch (Exception e) { e.printStackTrace(); }
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mMap.setMyLocationEnabled(true);
-        }
+        mMap.getUiSettings().setMyLocationButtonEnabled(false);
+        mMap.getUiSettings().setCompassEnabled(true);
+        mMap.getUiSettings().setMapToolbarEnabled(false);
+        enableMyLocationLayer();
 
         // 🎯 呼叫下載接收雲端資料
         loadDiariesFromServer();
 
         mMap.setOnMarkerClickListener(marker -> {
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(marker.getPosition(), 15f));
             lastSelectedMarker = marker;
             DiaryEntry entry = getCurrentDiaryEntry();
             if (entry != null) {
-                showDiaryCard(entry.isMine && entry.canEdit ? "編輯日記" : "閱讀日記");
-                bindDiaryToSheet(entry);
+                selectDiaryMarker(entry.id, true);
             }
             return true;
         });
+
+        mMap.setOnMapClickListener(latLng -> clearSelectedDiaryMarker());
+        mMap.setOnCameraMoveStartedListener(reason -> {
+            if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
+                setLocationButtonState("normal");
+            }
+        });
+    }
+
+    private void enableMyLocationLayer() {
+        if (mMap == null) return;
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            try {
+                mMap.setMyLocationEnabled(true);
+            } catch (SecurityException ignored) {
+                showMapStatus("定位權限無法啟用", false);
+            }
+            if (!locationPermissionRequested) locateUser(false);
+        } else if (!locationPermissionRequested) {
+            locationPermissionRequested = true;
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+    }
+
+    private void locateUser(boolean explicit) {
+        if (mMap == null || isLocating) return;
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (!locationPermissionRequested) {
+                locationPermissionRequested = true;
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION);
+            } else if (explicit) {
+                showMapStatus("請允許定位權限後再回到目前位置", false);
+                setLocationButtonState("error");
+            }
+            return;
+        }
+
+        isLocating = true;
+        setLocationButtonState("locating");
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    isLocating = false;
+                    if (location == null) {
+                        showMapStatus("暫時無法取得目前位置", false);
+                        setLocationButtonState("error");
+                        return;
+                    }
+                    LatLng target = new LatLng(location.getLatitude(), location.getLongitude());
+                    float currentZoom = mMap.getCameraPosition().zoom;
+                    float zoom = currentZoom < 11f ? 14.5f : Math.max(currentZoom, 14.5f);
+                    CameraPosition position = new CameraPosition.Builder()
+                            .target(target)
+                            .zoom(zoom)
+                            .tilt(32f)
+                            .bearing(mMap.getCameraPosition().bearing)
+                            .build();
+                    mMap.animateCamera(
+                            CameraUpdateFactory.newCameraPosition(position),
+                            getResources().getInteger(R.integer.motion_slow),
+                            null
+                    );
+                    setLocationButtonState("success");
+                    if (btnCurrentLocation != null) btnCurrentLocation.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                    if (explicit) showMapStatus("已回到目前位置", false);
+                })
+                .addOnFailureListener(this, error -> {
+                    isLocating = false;
+                    showMapStatus("定位失敗，請稍後再試", false);
+                    setLocationButtonState("error");
+                });
+    }
+
+    private void setLocationButtonState(String state) {
+        if (btnCurrentLocation == null) return;
+        if ("locating".equals(state)) {
+            btnCurrentLocation.setEnabled(false);
+            btnCurrentLocation.setAlpha(0.58f);
+            btnCurrentLocation.animate().rotationBy(180f).setDuration(getResources().getInteger(R.integer.motion_normal)).start();
+        } else if ("success".equals(state)) {
+            btnCurrentLocation.setEnabled(true);
+            btnCurrentLocation.setAlpha(1f);
+            btnCurrentLocation.animate().scaleX(1.08f).scaleY(1.08f).setDuration(getResources().getInteger(R.integer.motion_fast))
+                    .withEndAction(() -> btnCurrentLocation.animate().scaleX(1f).scaleY(1f).setDuration(getResources().getInteger(R.integer.motion_fast)).start())
+                    .start();
+        } else if ("error".equals(state)) {
+            btnCurrentLocation.setEnabled(true);
+            btnCurrentLocation.setAlpha(0.82f);
+        } else {
+            btnCurrentLocation.setEnabled(true);
+            btnCurrentLocation.setAlpha(1f);
+        }
+    }
+
+    private void showMapStatus(String message, boolean retry) {
+        if (mapStatusChip == null || tvMapStatus == null) return;
+        if (mapStatusDismissRunnable != null) {
+            mapStatusChip.removeCallbacks(mapStatusDismissRunnable);
+            mapStatusDismissRunnable = null;
+        }
+        tvMapStatus.setText(message);
+        if (btnRetryDiaries != null) btnRetryDiaries.setVisibility(retry ? View.VISIBLE : View.GONE);
+        mapStatusChip.setVisibility(View.VISIBLE);
+        mapStatusChip.setAlpha(0f);
+        mapStatusChip.animate().alpha(1f).setDuration(getResources().getInteger(R.integer.motion_normal)).start();
+        if (!retry) {
+            mapStatusDismissRunnable = () -> {
+                if (mapStatusChip != null && mapStatusChip.getVisibility() == View.VISIBLE && btnRetryDiaries != null && btnRetryDiaries.getVisibility() != View.VISIBLE) {
+                    mapStatusChip.animate().alpha(0f).setDuration(getResources().getInteger(R.integer.motion_normal))
+                            .withEndAction(() -> mapStatusChip.setVisibility(View.GONE))
+                            .start();
+                }
+            };
+            mapStatusChip.postDelayed(mapStatusDismissRunnable, 2200);
+        }
+    }
+
+    private void hideMapStatus() {
+        if (mapStatusChip == null) return;
+        if (mapStatusDismissRunnable != null) {
+            mapStatusChip.removeCallbacks(mapStatusDismissRunnable);
+            mapStatusDismissRunnable = null;
+        }
+        mapStatusChip.animate().alpha(0f).setDuration(getResources().getInteger(R.integer.motion_fast))
+                .withEndAction(() -> mapStatusChip.setVisibility(View.GONE))
+                .start();
+    }
+
+    private void updateMapEmptyState() {
+        if (mapEmptyChip == null) return;
+        boolean empty = markerDataMap.isEmpty();
+        mapEmptyChip.setVisibility(empty ? View.VISIBLE : View.GONE);
+        mapEmptyChip.setAlpha(empty ? 1f : 0f);
     }
 
     // 🎯 從雲端同步加載所有你看得到（包含好友、公開）的日記
     private void loadDiariesFromServer() {
+        showMapStatus("讀取地圖日記...", false);
         diaryRepository.getDiaries(new RepositoryCallback<List<DiaryDto>>() {
             @Override
             public void onSuccess(List<DiaryDto> diaries) {
@@ -881,21 +1205,27 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 markerDataMap.clear();
                 diaryMarkerMap.clear();
                 markerDiaryIdMap.clear();
+                selectedDiaryId = null;
+                lastSelectedMarker = null;
+                if (previewController != null) previewController.hide(getResources().getInteger(R.integer.motion_fast));
+                if (mMap != null) mMap.setPadding(0, 0, 0, 0);
 
                 for (DiaryDto diary : diaries) {
                     DiaryEntry internalEntry = buildEntryFromDto(diary);
                     if (internalEntry != null) addOrUpdateDiaryMarker(internalEntry);
                 }
-                lastSelectedMarker = null;
 
                 updateStatistics();
                 updateDiaryList();
+                updateMapEmptyState();
+                hideMapStatus();
             }
 
             @Override
             public void onError(String message) {
                 android.util.Log.e("MAP_LOAD", "讀取失敗: " + message);
-                Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
+                showMapStatus(message == null || message.isEmpty() ? "讀取地圖日記失敗" : message, true);
+                updateMapEmptyState();
             }
         });
     }
@@ -953,6 +1283,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         hideDiaryCard();
                         updateStatistics();
                         updateDiaryList();
+                        updateMapEmptyState();
+                        if (entry != null) selectDiaryMarker(entry.id, true);
                         Toast.makeText(MapActivity.this, "日記已同步", Toast.LENGTH_SHORT).show();
                     }
 
@@ -988,10 +1320,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         if (entry != null) {
                             addOrUpdateDiaryMarker(entry);
                             bindDiaryToSheet(entry);
+                            selectDiaryMarker(entry.id, true);
                         }
                         hideDiaryCard();
                         updateStatistics();
                         updateDiaryList();
+                        updateMapEmptyState();
                         Toast.makeText(MapActivity.this, "日記已更新", Toast.LENGTH_SHORT).show();
                     }
 
@@ -1033,11 +1367,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             }
 
             holder.itemView.setOnClickListener(v -> {
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(entry.location, 15f));
                 if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.END);
-                lastSelectedMarker = diaryMarkerMap.get(entry.id);
-                showDiaryCard(entry.isMine && entry.canEdit ? "編輯日記" : "閱讀日記");
-                bindDiaryToSheet(entry);
+                selectDiaryMarker(entry.id, true);
             });
         }
 

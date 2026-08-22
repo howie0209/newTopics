@@ -11,108 +11,417 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:background="@color/adrift_surface_glass"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="8dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="地圖日記"
-                    android:textColor="@color/white"
-                    android:textSize="17sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
-                <LinearLayout
-                    android:id="@+id/toggle_container"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_adrift_floating_control"
-                    android:orientation="horizontal"
-                    android:padding="3dp"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:id="@+id/btn_switch_mine"
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:background="@drawable/bg_login_card"
-                        android:gravity="center"
-                        android:paddingHorizontal="10dp"
-                        android:text="我的日記"
-                        android:textColor="@color/white"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:id="@+id/btn_switch_explore"
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="10dp">
-
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:layout_marginEnd="4dp"
-                            android:src="@android:drawable/ic_menu_compass"
-                            app:tint="@color/hint_text" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Explore"
-                            android:textColor="@color/hint_text"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/btn_top_add_diary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:layout_marginEnd="6dp"
-                    android:background="@drawable/bg_adrift_floating_control"
-                    android:gravity="center"
-                    android:paddingHorizontal="12dp"
-                    android:text="新增"
-                    android:textColor="@color/cyan_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <ImageButton
-                    android:id="@+id/btn_open_drawer"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_more_vert"
-                    app:tint="@color/cyan_primary" />
-            </LinearLayout>
+            android:layout_height="match_parent">
 
             <fragment
                 android:id="@+id/map_fragment"
                 android:name="com.google.android.gms.maps.SupportMapFragment"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-        </LinearLayout>
+                android:layout_height="match_parent" />
+
+            <LinearLayout
+                android:id="@+id/map_identity_chip"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="@dimen/space_md"
+                android:layout_marginTop="@dimen/space_md"
+                android:background="@drawable/bg_adrift_map_chip"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:minWidth="128dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="@dimen/space_md">
+
+                <FrameLayout
+                    android:layout_width="36dp"
+                    android:layout_height="36dp">
+
+                    <ImageView
+                        android:id="@+id/iv_map_identity_avatar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_adrift_avatar"
+                        android:contentDescription="使用者頭像"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tv_map_identity_avatar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_adrift_avatar"
+                        android:gravity="center"
+                        android:text="A"
+                        android:textColor="@color/adrift_text_primary"
+                        android:textStyle="bold" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_sm"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tv_map_identity_name"
+                        style="@style/Text.Adrift.Caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:maxWidth="132dp"
+                        android:singleLine="true"
+                        android:text="Adrift"
+                        android:textColor="@color/adrift_text_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_map_identity_code"
+                        style="@style/Text.Adrift.Metadata"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:maxWidth="132dp"
+                        android:singleLine="true"
+                        android:text="@loading" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btn_open_drawer"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="@dimen/space_md"
+                android:background="@drawable/bg_adrift_map_button"
+                android:contentDescription="開啟日記列表"
+                android:src="@drawable/ic_more_vert"
+                app:tint="@color/adrift_text_primary" />
+
+            <LinearLayout
+                android:id="@+id/map_mode_chip"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="76dp"
+                android:layout_marginEnd="@dimen/space_md"
+                android:background="@drawable/bg_adrift_map_chip"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="3dp">
+
+                <TextView
+                    android:id="@+id/btn_switch_mine"
+                    android:layout_width="72dp"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_adrift_nav_item"
+                    android:gravity="center"
+                    android:text="我的"
+                    android:textColor="@color/adrift_text_primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/btn_switch_explore"
+                    android:layout_width="80dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="探索"
+                        android:textColor="@color/adrift_text_secondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/map_control_rail"
+                android:layout_width="56dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|bottom"
+                android:layout_marginEnd="@dimen/space_md"
+                android:layout_marginBottom="164dp"
+                android:background="@drawable/bg_adrift_map_chip"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="5dp">
+
+                <ImageButton
+                    android:id="@+id/btn_current_location"
+                    android:layout_width="@dimen/touch_target"
+                    android:layout_height="@dimen/touch_target"
+                    android:background="@drawable/bg_adrift_map_button"
+                    android:contentDescription="回到目前位置"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    app:tint="@color/adrift_accent" />
+
+                <ImageButton
+                    android:id="@+id/btn_top_add_diary"
+                    android:layout_width="@dimen/touch_target"
+                    android:layout_height="@dimen/touch_target"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:background="@drawable/bg_adrift_map_button_primary"
+                    android:contentDescription="新增日記"
+                    android:src="@android:drawable/ic_menu_edit"
+                    app:tint="@color/adrift_text_primary" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/map_status_chip"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:layout_gravity="bottom|start"
+                android:layout_marginStart="@dimen/space_md"
+                android:layout_marginBottom="96dp"
+                android:background="@drawable/bg_adrift_map_chip"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/space_md"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tv_map_status"
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="讀取日記..." />
+
+                <TextView
+                    android:id="@+id/btn_retry_diaries"
+                    style="@style/Text.Adrift.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="@dimen/space_md"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:text="重試"
+                    android:textColor="@color/adrift_accent"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/map_empty_chip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_marginStart="@dimen/space_md"
+                android:layout_marginBottom="96dp"
+                android:background="@drawable/bg_adrift_map_chip"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/space_md"
+                android:paddingVertical="@dimen/space_sm"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="還沒有漂流足跡" />
+
+                <TextView
+                    style="@style/Text.Adrift.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_sm"
+                    android:text="新增第一篇"
+                    android:textColor="@color/adrift_accent" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/diary_preview_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:layout_marginHorizontal="@dimen/space_md"
+                android:layout_marginBottom="96dp"
+                android:background="@drawable/bg_adrift_preview_card"
+                android:clickable="true"
+                android:elevation="16dp"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:padding="@dimen/space_md"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tv_preview_author"
+                        style="@style/Text.Adrift.Caption"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:singleLine="true"
+                        android:text="Adrift 使用者"
+                        android:textColor="@color/adrift_text_primary"
+                        android:textStyle="bold" />
+
+                    <ImageButton
+                        android:id="@+id/btn_close_preview_card"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_adrift_map_button"
+                        android:contentDescription="關閉日記預覽"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        app:tint="@color/adrift_text_secondary" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tv_preview_title"
+                            style="@style/Text.Adrift.Headline"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:singleLine="true"
+                            android:text="日記標題" />
+
+                        <TextView
+                            android:id="@+id/tv_preview_text"
+                            style="@style/Text.Adrift.BodySecondary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_xs"
+                            android:maxLines="2"
+                            android:text="日記內容" />
+
+                        <TextView
+                            android:id="@+id/tv_preview_meta"
+                            style="@style/Text.Adrift.Metadata"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_sm"
+                            android:singleLine="true"
+                            android:text="位置 · 日期" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/iv_preview_diary_image"
+                        android:layout_width="92dp"
+                        android:layout_height="76dp"
+                        android:layout_marginStart="@dimen/space_md"
+                        android:background="@drawable/bg_image_placeholder"
+                        android:contentDescription="日記圖片"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tv_preview_mood"
+                        style="@style/Text.Adrift.Metadata"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_adrift_map_chip"
+                        android:gravity="center"
+                        android:paddingHorizontal="@dimen/space_sm"
+                        android:text="心情"
+                        android:textColor="@color/adrift_accent" />
+
+                    <TextView
+                        android:id="@+id/tv_preview_reactions"
+                        style="@style/Text.Adrift.Metadata"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_sm"
+                        android:layout_weight="1"
+                        android:singleLine="true"
+                        android:text="共鳴 0" />
+
+                    <TextView
+                        style="@style/Text.Adrift.Button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="查看"
+                        android:textColor="@color/adrift_accent" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/map_bottom_nav"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/bottom_nav_height"
+                android:layout_gravity="bottom"
+                android:layout_margin="@dimen/space_md"
+                android:background="@drawable/bg_adrift_bottom_nav"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:padding="@dimen/space_xs">
+
+                <TextView
+                    android:id="@+id/map_nav_map"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_adrift_nav_item"
+                    android:gravity="center"
+                    android:text="地圖"
+                    android:textColor="@color/adrift_text_primary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/map_nav_friends"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_adrift_nav_item"
+                    android:gravity="center"
+                    android:text="好友"
+                    android:textColor="@color/adrift_text_secondary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/map_nav_explore"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_adrift_nav_item"
+                    android:gravity="center"
+                    android:text="探索"
+                    android:textColor="@color/adrift_text_secondary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/map_nav_settings"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_adrift_nav_item"
+                    android:gravity="center"
+                    android:text="設定"
+                    android:textColor="@color/adrift_text_secondary"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </FrameLayout>
 
         <View
             android:id="@+id/map_blur_overlay"
@@ -804,60 +1113,6 @@
 
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/map_bottom_nav"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/bottom_nav_height"
-                android:layout_margin="@dimen/space_md"
-                android:background="@drawable/bg_adrift_bottom_nav"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:padding="@dimen/space_xs">
-
-                <TextView
-                    android:id="@+id/map_nav_map"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_adrift_nav_item"
-                    android:gravity="center"
-                    android:text="地圖"
-                    android:textColor="@color/adrift_text_primary"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/map_nav_friends"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_adrift_nav_item"
-                    android:gravity="center"
-                    android:text="好友"
-                    android:textColor="@color/adrift_text_secondary"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/map_nav_explore"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_adrift_nav_item"
-                    android:gravity="center"
-                    android:text="探索"
-                    android:textColor="@color/adrift_text_secondary"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/map_nav_settings"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_adrift_nav_item"
-                    android:gravity="center"
-                    android:text="設定"
-                    android:textColor="@color/adrift_text_secondary"
-                    android:textStyle="bold" />
-            </LinearLayout>
         </LinearLayout>
     </com.google.android.material.navigation.NavigationView>
 

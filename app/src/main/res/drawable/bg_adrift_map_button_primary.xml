@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="oval">
+            <solid android:color="@color/adrift_mint" />
+            <stroke
+                android:width="1dp"
+                android:color="#55FFFFFF" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:angle="45"
+                android:startColor="@color/adrift_ocean"
+                android:endColor="@color/adrift_accent" />
+            <stroke
+                android:width="1dp"
+                android:color="#44FFFFFF" />
+        </shape>
+    </item>
+</selector>
