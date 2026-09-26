@@ -41,7 +41,6 @@ import com.example.topics.data.mapper.DiaryUiModel;
 import com.example.topics.data.model.DiaryDto;
 import com.example.topics.data.model.EmptyResponse;
 import com.example.topics.data.model.ReactionUpdateData;
-import com.example.topics.data.model.SearchUserResult;
 import com.example.topics.data.model.UserDto;
 import com.example.topics.data.remote.ImageUrlResolver;
 import com.example.topics.data.repository.DiaryRepository;
@@ -112,8 +111,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private TextView tvCountMine, tvCountVisible;
     private Button btnPriv, btnFrdOnly, btnPub;
     private LinearLayout layoutMyDiaryRoot, layoutFriendManagement;
-    private EditText etSearchFriend;
-    private ImageButton btnSearchUser;
 
     private RecyclerView rvDiaryList;
     private DiaryListAdapter diaryListAdapter;
@@ -121,8 +118,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private boolean isShowingMine = true;
     private int currentFilter = -1;
 
-    private RecyclerView rvSentRequests, rvReceivedRequests, rvFriendsList;
-    private TextView tvEmptySent, tvEmptyReceived, tvEmptyFriends;
+    // 🎯 附近動態：距離篩選按鈕與清單
+    private Button btnRadius1km, btnRadius5km, btnRadius10km, btnRadius50km;
+    private TextView tvNearbyMineCount, tvNearbyVisibleCount, tvEmptyNearby;
+    private RecyclerView rvNearbyDiaries;
+    private NearbyDiaryAdapter nearbyDiaryAdapter;
+    private List<DiaryEntry> nearbyDiaries = new ArrayList<>();
+    private int currentRadiusMeters = 50000;
 
     private RecyclerView rvImagePreview;
     private ImageAdapter imageAdapter;
@@ -617,33 +619,42 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
             layoutMyDiaryRoot = navView.findViewById(R.id.layout_my_diary_root);
             layoutFriendManagement = navView.findViewById(R.id.layout_friend_management);
-            etSearchFriend = navView.findViewById(R.id.et_search_friend);
-            btnSearchUser = navView.findViewById(R.id.btn_search_user);
 
-            // 搜尋按鈕邏輯 (已存在)
-            if (btnSearchUser != null) {
-                btnSearchUser.setOnClickListener(v -> {
-                    String name = etSearchFriend.getText().toString().trim();
-                    if (!name.isEmpty()) performUserSearch(name);
-                });
+            // 🎯 附近動態：距離篩選按鈕與清單
+            btnRadius1km = navView.findViewById(R.id.btn_radius_1km);
+            btnRadius5km = navView.findViewById(R.id.btn_radius_5km);
+            btnRadius10km = navView.findViewById(R.id.btn_radius_10km);
+            btnRadius50km = navView.findViewById(R.id.btn_radius_50km);
+            tvNearbyMineCount = navView.findViewById(R.id.tv_nearby_mine_count);
+            tvNearbyVisibleCount = navView.findViewById(R.id.tv_nearby_visible_count);
+            tvEmptyNearby = navView.findViewById(R.id.tv_empty_nearby);
+            rvNearbyDiaries = navView.findViewById(R.id.rv_nearby_diaries);
+
+            if (rvNearbyDiaries != null) {
+                rvNearbyDiaries.setLayoutManager(new LinearLayoutManager(this));
+                nearbyDiaryAdapter = new NearbyDiaryAdapter();
+                rvNearbyDiaries.setAdapter(nearbyDiaryAdapter);
             }
 
-            rvSentRequests = navView.findViewById(R.id.rv_sent_requests);
-            rvReceivedRequests = navView.findViewById(R.id.rv_received_requests);
-            rvFriendsList = navView.findViewById(R.id.rv_friends_list);
-            tvEmptySent = navView.findViewById(R.id.tv_empty_sent);
-            tvEmptyReceived = navView.findViewById(R.id.tv_empty_received);
-            tvEmptyFriends = navView.findViewById(R.id.tv_empty_friends);
+            View.OnClickListener radiusClick = v -> {
+                int radius = v == btnRadius1km ? 1000
+                        : v == btnRadius5km ? 5000
+                        : v == btnRadius10km ? 10000
+                        : 50000;
+                currentRadiusMeters = radius;
+                updateRadiusButtonUI((Button) v);
+                loadNearbyDiaries();
+            };
+            if (btnRadius1km != null) btnRadius1km.setOnClickListener(radiusClick);
+            if (btnRadius5km != null) btnRadius5km.setOnClickListener(radiusClick);
+            if (btnRadius10km != null) btnRadius10km.setOnClickListener(radiusClick);
+            if (btnRadius50km != null) btnRadius50km.setOnClickListener(radiusClick);
 
             if (rvDiaryList != null) {
                 rvDiaryList.setLayoutManager(new LinearLayoutManager(this));
                 diaryListAdapter = new DiaryListAdapter();
                 rvDiaryList.setAdapter(diaryListAdapter);
             }
-
-            if (rvFriendsList != null) rvFriendsList.setLayoutManager(new LinearLayoutManager(this));
-            if (rvSentRequests != null) rvSentRequests.setLayoutManager(new LinearLayoutManager(this));
-            if (rvReceivedRequests != null) rvReceivedRequests.setLayoutManager(new LinearLayoutManager(this));
 
             if (tabMine != null) {
                 tabMine.setOnClickListener(v -> {
@@ -671,10 +682,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     }
                     if (layoutMyDiaryRoot != null) layoutMyDiaryRoot.setVisibility(View.GONE);
                     if (layoutFriendManagement != null) layoutFriendManagement.setVisibility(View.VISIBLE);
-
-                    // 💡 關鍵修正：點開好友分頁時，除了更新狀態，還要「抓取最新邀請清單」
-                    updateFriendEmptyStates();
-                    loadFriendData();
+                    loadNearbyDiaries();
                 });
             }
 
@@ -775,12 +783,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         updateDiaryList();
     }
 
-    private void updateFriendEmptyStates() {
-        if (tvEmptySent != null) tvEmptySent.setVisibility(View.VISIBLE);
-        if (tvEmptyReceived != null) tvEmptyReceived.setVisibility(View.VISIBLE);
-        if (tvEmptyFriends != null) tvEmptyFriends.setVisibility(View.VISIBLE);
-    }
-
     private void updateDiaryList() {
         displayedDiaries.clear();
         for (DiaryEntry entry : markerDataMap.values()) {
@@ -800,6 +802,21 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private void updateFilterUI(Button selected) {
         Button[] btns = {btnPriv, btnFrdOnly, btnPub};
         for (Button b : btns) {
+            if (b == null) continue;
+            if (b == selected) {
+                b.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00E5FF")));
+                b.setTextColor(Color.BLACK);
+            } else {
+                b.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#33FFFFFF")));
+                b.setTextColor(Color.WHITE);
+            }
+        }
+    }
+
+    // 🎯 附近動態：更新距離篩選按鈕的高亮樣式
+    private void updateRadiusButtonUI(Button selected) {
+        Button[] radiusButtons = {btnRadius1km, btnRadius5km, btnRadius10km, btnRadius50km};
+        for (Button b : radiusButtons) {
             if (b == null) continue;
             if (b == selected) {
                 b.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00E5FF")));
@@ -1245,6 +1262,44 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         });
     }
 
+    // 🎯 附近動態：依目前位置與所選半徑抓取附近公開日記
+    private void loadNearbyDiaries() {
+        if (mMap == null) return;
+        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+            if (!isActive() || location == null) return;
+            diaryRepository.getExploreDiaries(
+                    location.getLatitude(),
+                    location.getLongitude(),
+                    currentRadiusMeters,
+                    new RepositoryCallback<List<DiaryDto>>() {
+                        @Override
+                        public void onSuccess(List<DiaryDto> diaries) {
+                            if (!isActive()) return;
+                            nearbyDiaries.clear();
+                            int mineCount = 0;
+                            for (DiaryDto dto : diaries) {
+                                DiaryEntry entry = buildEntryFromDto(dto);
+                                if (entry != null) {
+                                    nearbyDiaries.add(entry);
+                                    if (entry.isMine) mineCount++;
+                                }
+                            }
+                            if (tvNearbyMineCount != null) tvNearbyMineCount.setText(String.valueOf(mineCount));
+                            if (tvNearbyVisibleCount != null) tvNearbyVisibleCount.setText(String.valueOf(nearbyDiaries.size()));
+                            if (tvEmptyNearby != null) tvEmptyNearby.setVisibility(nearbyDiaries.isEmpty() ? View.VISIBLE : View.GONE);
+                            if (nearbyDiaryAdapter != null) nearbyDiaryAdapter.notifyDataSetChanged();
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            if (!isActive()) return;
+                            Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+            );
+        });
+    }
+
 
     private void saveTrace() {
         if (isDiaryRequestInFlight) return;
@@ -1375,7 +1430,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             DiaryEntry entry = displayedDiaries.get(position);
 
-            // 保持你原本就運作良好的所有顯示邏輯
             holder.tvTitle.setText(entry.title.isEmpty() ? entry.mood : entry.title);
             holder.tvTime.setText(entry.time);
             holder.tvHeart.setText("❤️ " + entry.heartCount);
@@ -1385,8 +1439,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             String icon = (entry.visibility == 0) ? "🔒" : (entry.visibility == 1) ? "👥" : "👁️";
             if (holder.tvIcon != null) holder.tvIcon.setText(icon);
 
-            // 🎯 【最終解決方案：直接顯示名字】
-            // 為了確保運作，我們在 MapActivity 裡建立一個簡單的查找機制
             if (holder.tvItemAuthor != null) {
                 String authorName = entry.authorName == null || entry.authorName.isEmpty() ? "Adrift" : entry.authorName;
                 holder.tvItemAuthor.setText("@" + authorName);
@@ -1403,7 +1455,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvTitle, tvTime, tvIcon, tvHeart, tvSmile, tvSurprise;
-            // 🎯 1. 【精準新增】宣告發布者名字的 TextView 變數 (維持與 XML 對齊的命名規範)
             TextView tvItemAuthor;
 
             ViewHolder(View v) {
@@ -1414,8 +1465,54 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 tvHeart = v.findViewById(R.id.tv_heart_count);
                 tvSmile = v.findViewById(R.id.tv_smile_count);
                 tvSurprise = v.findViewById(R.id.tv_surprise_count);
+                tvItemAuthor = v.findViewById(R.id.tv_item_author);
+            }
+        }
+    }
 
-                // 🎯 2. 【精準綁定】將變數與 XML 剛建好的 id (tv_item_author) 正確連線，保證不跑版！
+    // 🎯 附近動態列表配接器
+    private class NearbyDiaryAdapter extends RecyclerView.Adapter<NearbyDiaryAdapter.ViewHolder> {
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_diary_list, parent, false);
+            return new ViewHolder(v);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            DiaryEntry entry = nearbyDiaries.get(position);
+            holder.tvTitle.setText(entry.title.isEmpty() ? entry.mood : entry.title);
+            holder.tvTime.setText(entry.time);
+            holder.tvHeart.setText("❤️ " + entry.heartCount);
+            holder.tvSmile.setText("😊 " + entry.smileCount);
+            holder.tvSurprise.setText("☔ " + entry.surpriseCount);
+            String icon = (entry.visibility == 0) ? "🔒" : (entry.visibility == 1) ? "👥" : "👁️";
+            if (holder.tvIcon != null) holder.tvIcon.setText(icon);
+            if (holder.tvItemAuthor != null) {
+                String authorName = entry.authorName == null || entry.authorName.isEmpty() ? "Adrift" : entry.authorName;
+                holder.tvItemAuthor.setText("@" + authorName);
+            }
+            holder.itemView.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(GravityCompat.END);
+                addOrUpdateDiaryMarker(entry);
+                selectDiaryMarker(entry.id, true);
+            });
+        }
+
+        @Override
+        public int getItemCount() { return nearbyDiaries.size(); }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvTitle, tvTime, tvIcon, tvHeart, tvSmile, tvSurprise, tvItemAuthor;
+            ViewHolder(View v) {
+                super(v);
+                tvTitle = v.findViewById(R.id.tv_item_title);
+                tvTime = v.findViewById(R.id.tv_item_time);
+                tvIcon = v.findViewById(R.id.tv_item_icon);
+                tvHeart = v.findViewById(R.id.tv_heart_count);
+                tvSmile = v.findViewById(R.id.tv_smile_count);
+                tvSurprise = v.findViewById(R.id.tv_surprise_count);
                 tvItemAuthor = v.findViewById(R.id.tv_item_author);
             }
         }
@@ -1458,212 +1555,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     }
 
-    // 💡 方法一：處理搜尋邏輯
-    private void performUserSearch(String targetName) {
-        friendRepository.searchUser(targetName, new RepositoryCallback<SearchUserResult>() {
-            @Override
-            public void onSuccess(SearchUserResult user) {
-                showAddFriendDialog(user);
-            }
-
-            @Override
-            public void onError(String message) {
-                android.widget.Toast.makeText(MapActivity.this, message, android.widget.Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    // 💡 方法二：處理彈出對話框 (完美解決 ID 為空、未知用戶的致命防線)
-    private void showAddFriendDialog(SearchUserResult targetUser) {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("新增好友")
-                .setMessage("確定要發送邀請給 " + targetUser.name + " 嗎？")
-                .setPositiveButton("確定", (dialog, which) -> {
-                    sendFriendRequestToServer(targetUser.getId());
-                })
-                .setNegativeButton("取消", null)
-                .show();
-    }
-
-    // 💡 方法三：處理發送邀請 (原封不動，維持完美的運作機制)
-    private void sendFriendRequestToServer(String targetId) {
-        friendRepository.sendFriendRequest(targetId, new RepositoryCallback<EmptyResponse>() {
-            @Override
-            public void onSuccess(EmptyResponse value) {
-                android.widget.Toast.makeText(MapActivity.this, "邀請已送出！", android.widget.Toast.LENGTH_SHORT).show();
-                loadFriendData();
-            }
-
-            @Override
-            public void onError(String message) {
-                android.widget.Toast.makeText(MapActivity.this, message, android.widget.Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-
-
-    private void loadFriendData() {
-        friendRepository.getSentRequests(new FriendListCallback(rvSentRequests, tvEmptySent, "sent", "尚未送出好友邀請"));
-        friendRepository.getReceivedRequests(new FriendListCallback(rvReceivedRequests, tvEmptyReceived, "received", "尚未收到好友邀請"));
-        friendRepository.getFriends(new FriendListCallback(rvFriendsList, tvEmptyFriends, "accepted", "還沒有好友，去搜尋吧"));
-    }
-
-// --- 💡 以下是為了搭配新版列表介面所需要的新增方法 ---
-
-    // 執行更新狀態 (例如接受邀請)
-    private void executeUpdateAction(String recordId, String status) {
-        friendRepository.acceptRequest(recordId, reloadFriendsCallback());
-    }
-
-    // 執行刪除操作 (收回、拒絕、刪除好友共用)
-    private void executeDeleteAction(String recordId) {
-        friendRepository.deleteFriend(recordId, reloadFriendsCallback());
-    }
-
-    private void executeRejectRequest(String recordId) {
-        friendRepository.rejectRequest(recordId, reloadFriendsCallback());
-    }
-
-    private void executeCancelRequest(String recordId) {
-        friendRepository.cancelRequest(recordId, reloadFriendsCallback());
-    }
-
-    private RepositoryCallback<EmptyResponse> reloadFriendsCallback() {
-        return new RepositoryCallback<EmptyResponse>() {
-            @Override
-            public void onSuccess(EmptyResponse value) {
-                loadFriendData();
-            }
-
-            @Override
-            public void onError(String message) {
-                Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
-            }
-        };
-    }
-
-    private class FriendListCallback implements RepositoryCallback<List<FriendRecord>> {
-        private final RecyclerView recyclerView;
-        private final TextView emptyView;
-        private final String type;
-        private final String emptyText;
-
-        FriendListCallback(RecyclerView recyclerView, TextView emptyView, String type, String emptyText) {
-            this.recyclerView = recyclerView;
-            this.emptyView = emptyView;
-            this.type = type;
-            this.emptyText = emptyText;
-        }
-
-        @Override
-        public void onSuccess(List<FriendRecord> list) {
-            if (list != null && !list.isEmpty()) {
-                if (emptyView != null) emptyView.setVisibility(View.GONE);
-                if (recyclerView != null) {
-                    recyclerView.setVisibility(View.VISIBLE);
-                    recyclerView.setLayoutManager(new LinearLayoutManager(MapActivity.this));
-                    recyclerView.setAdapter(new FriendListAdapter(list, type));
-                }
-            } else {
-                if (emptyView != null) {
-                    emptyView.setVisibility(View.VISIBLE);
-                    emptyView.setText(emptyText);
-                }
-                if (recyclerView != null) recyclerView.setVisibility(View.GONE);
-            }
-        }
-
-        @Override
-        public void onError(String message) {
-            if (emptyView != null) {
-                emptyView.setVisibility(View.VISIBLE);
-                emptyView.setText(message);
-            }
-        }
-    }
-
-    // 彈出好友個人資料視窗 (對應你的第三張截圖)
-    private void showFriendProfileDialog(FriendRecord record) {
-        new androidx.appcompat.app.AlertDialog.Builder(MapActivity.this)
-                .setTitle(record.getTargetName() + " 的個人資料")
-                .setMessage("@" + record.getTargetName() + "\n\n加入日期：" + formatDate(record.getCreatedAt()))
-                .setPositiveButton("查看地圖日記", null)
-                .setNegativeButton("刪除好友", (dialog, which) -> executeDeleteAction(record.getId()))
-                .show();
-    }
-
     private String formatDate(String value) {
         if (value != null && value.length() >= 10) return value.substring(0, 10);
         return "尚無資料";
-    }
-
-    // 卡片列表配接器 (控制收回、接受、刪除等按鈕)
-    private class FriendListAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<FriendListAdapter.ViewHolder> {
-        private java.util.List<FriendRecord> data;
-        private String type;
-
-        public FriendListAdapter(java.util.List<FriendRecord> data, String type) {
-            this.data = data;
-            this.type = type;
-        }
-
-        @androidx.annotation.NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@androidx.annotation.NonNull android.view.ViewGroup parent, int viewType) {
-            // ⚠️ 這裡需要確保你有 res/layout/item_friend_card.xml
-            // 若目前還沒畫 XML，可以先用一個簡單的 TextView 取代避免崩潰，但若要像截圖那樣，需自己建立佈局。
-            android.view.View view = android.view.LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_friend_card, parent, false);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@androidx.annotation.NonNull ViewHolder holder, int position) {
-            FriendRecord record = data.get(position);
-
-            // 💡 終極根治法：名字由後端在傳輸時保證一定是「對方」的 username
-            String displayName = record.getTargetName();
-
-            // 💡 將參數完全不變地設定到 UI 上
-            holder.tvName.setText(displayName);
-
-            if ("sent".equals(type)) {
-                holder.tvStatus.setText("@" + displayName + " · 等待對方回覆");
-                holder.btnAction1.setText("收回");
-                holder.btnAction1.setOnClickListener(v -> executeCancelRequest(record.getId()));
-                holder.btnAction2.setVisibility(android.view.View.GONE);
-            } else if ("received".equals(type)) {
-                holder.tvStatus.setText("@" + displayName + " · 向您發送了邀請");
-                holder.btnAction1.setText("接受");
-                holder.btnAction2.setText("拒絕");
-                holder.btnAction2.setVisibility(android.view.View.VISIBLE);
-                holder.btnAction1.setOnClickListener(v -> executeUpdateAction(record.getId(), "accepted"));
-                holder.btnAction2.setOnClickListener(v -> executeRejectRequest(record.getId()));
-            } else if ("accepted".equals(type)) {
-                holder.tvStatus.setText("@" + displayName + " · 已是好友");
-                holder.btnAction1.setText("個人資料");
-                holder.btnAction2.setText("刪除");
-                holder.btnAction2.setVisibility(android.view.View.VISIBLE);
-                holder.btnAction1.setOnClickListener(v -> showFriendProfileDialog(record));
-                holder.btnAction2.setOnClickListener(v -> executeDeleteAction(record.getId()));
-            }
-        }
-
-        @Override
-        public int getItemCount() { return data.size(); }
-
-        class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
-            android.widget.TextView tvName, tvStatus;
-            android.widget.Button btnAction1, btnAction2;
-            public ViewHolder(@androidx.annotation.NonNull android.view.View itemView) {
-                super(itemView);
-                tvName = itemView.findViewById(R.id.tv_item_name);
-                tvStatus = itemView.findViewById(R.id.tv_item_status);
-                btnAction1 = itemView.findViewById(R.id.btn_item_action_1);
-                btnAction2 = itemView.findViewById(R.id.btn_item_action_2);
-            }
-        }
-
     }
 }

@@ -765,7 +765,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/bg_login_card"
                     android:gravity="center"
-                    android:text="日記"
+                    android:text="日記地圖"
                     android:textColor="@color/white"
                     android:textStyle="bold" />
 
@@ -775,7 +775,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:gravity="center"
-                    android:text="好友"
+                    android:text="附近動態"
                     android:textColor="@color/hint_text" />
             </LinearLayout>
 
@@ -910,129 +910,156 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
+                <!-- 距離篩選 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btn_radius_1km"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="1km"
+                        android:textSize="11sp"
+                        android:backgroundTint="#33FFFFFF"
+                        android:textColor="@color/white"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
+                    <Button
+                        android:id="@+id/btn_radius_5km"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="5km"
+                        android:textSize="11sp"
+                        android:backgroundTint="#33FFFFFF"
+                        android:textColor="@color/white"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
+                    <Button
+                        android:id="@+id/btn_radius_10km"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="10km"
+                        android:textSize="11sp"
+                        android:backgroundTint="#33FFFFFF"
+                        android:textColor="@color/white"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
+                    <Button
+                        android:id="@+id/btn_radius_50km"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="50km"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/cyan_primary"
+                        android:textColor="@color/dark_bg"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+                </LinearLayout>
+
+                <!-- 統計 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_edittext_dark"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/tv_nearby_mine_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/white"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="我的足跡"
+                            android:textColor="@color/hint_text"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_edittext_dark"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/tv_nearby_visible_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/white"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="可見記憶"
+                            android:textColor="@color/hint_text"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_edittext_dark"
+                    android:padding="10dp"
+                    android:text="附近動態只顯示公開日記"
+                    android:textColor="@color/hint_text"
+                    android:textSize="11sp"
+                    android:gravity="center" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="搜尋使用者 ID"
+                    android:text="🕒 目前地圖日記"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="20dp"/>
+
+                <TextView
+                    android:id="@+id/tv_empty_nearby"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:text="這個範圍內還沒有公開日記"
                     android:textColor="@color/hint_text"
                     android:textSize="12sp"
-                    android:layout_marginTop="16dp"/>
+                    android:visibility="gone" />
 
-                <LinearLayout
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_nearby_diaries"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/bg_edittext_dark"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="12dp">
-                    <EditText
-                        android:id="@+id/et_search_friend"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:background="@null"
-                        android:hint="輸入用戶 ID..."
-                        android:textColor="@color/white"
-                        android:textColorHint="@color/hint_text"
-                        android:textSize="14sp" />
-                    <ImageButton
-                        android:id="@+id/btn_search_user"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_search"
-                        app:tint="@color/white" />
-                </LinearLayout>
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="8dp" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="20dp"
-                    android:background="@drawable/bg_edittext_dark"
-                    android:orientation="vertical"
-                    android:padding="12dp">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="↪️ 已送出邀請"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_sent_requests"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
-                    <TextView
-                        android:id="@+id/tv_empty_sent"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"
-                        android:text="目前沒有等待回覆的邀請。"
-                        android:textColor="@color/hint_text"
-                        android:textSize="12sp"
-                        android:visibility="visible" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_edittext_dark"
-                    android:orientation="vertical"
-                    android:padding="12dp">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="📩 收到的邀請"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_received_requests"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
-                    <TextView
-                        android:id="@+id/tv_empty_received"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"
-                        android:text="目前沒有新的好友邀請。"
-                        android:textColor="@color/hint_text"
-                        android:textSize="12sp"
-                        android:visibility="visible" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_edittext_dark"
-                    android:orientation="vertical"
-                    android:padding="12dp">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="👥 好友列表"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_friends_list"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
-                    <TextView
-                        android:id="@+id/tv_empty_friends"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"
-                        android:text="還沒有好友，去搜尋吧"
-                        android:textColor="@color/hint_text"
-                        android:textSize="12sp"
-                        android:visibility="visible" />
-                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
