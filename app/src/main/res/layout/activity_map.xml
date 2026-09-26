@@ -417,7 +417,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/bg_adrift_nav_item"
                     android:gravity="center"
-                    android:text="設定"
+                    android:text="Adrift Intelligence"
                     android:textColor="@color/adrift_text_secondary"
                     android:textStyle="bold" />
             </LinearLayout>

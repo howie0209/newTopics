@@ -57,6 +57,8 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyA2MjUo1T8NsII2cz5dtPjXwAhm9S7CtVo" />
+        <activity android:name=".InsightActivity" />
+
     </application>
 
 </manifest>

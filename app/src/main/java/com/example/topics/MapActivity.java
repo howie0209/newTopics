@@ -433,7 +433,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (mapNavSettings != null) {
             mapNavSettings.setOnClickListener(v -> {
                 selectMapNav("settings");
-                AppNavigator.openTopLevel(this, SettingsActivity.class);
+                startActivity(new Intent(this, InsightActivity.class));
             });
         }
         selectMapNav("map");

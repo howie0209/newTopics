@@ -32,6 +32,8 @@ import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
+import com.example.topics.data.model.LifeMapData;
+
 public interface ApiService {
 
     @POST("auth/login")
@@ -123,4 +125,7 @@ public interface ApiService {
 
     @GET("friends/{friendId}/profile")
     Call<ApiResponse<FriendProfileDto>> getFriendProfile(@Path("friendId") String friendId);
+
+    @GET("ai/life-map")
+    Call<ApiResponse<LifeMapData>> getLifeMapInsight();
 }
