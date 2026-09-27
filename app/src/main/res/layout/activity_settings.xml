@@ -29,36 +29,120 @@
             android:text="帳號設定" />
     </RelativeLayout>
 
+    <!-- 使用者資訊卡 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_lg"
+        android:layout_marginBottom="@dimen/space_md"
         android:background="@drawable/bg_adrift_glass"
-        android:orientation="vertical"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:padding="@dimen/space_md">
 
-        <TextView
-            android:id="@+id/tv_settings_username"
-            style="@style/Text.Adrift.Title2"
-            android:layout_width="wrap_content"
+        <ImageView
+            android:id="@+id/iv_settings_avatar"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_adrift_avatar"
+            android:clickable="true"
+            android:contentDescription="頭貼"
+            android:focusable="true"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="使用者名稱" />
+            android:layout_marginStart="@dimen/space_md"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_settings_username"
+                    style="@style/Text.Adrift.Title2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="使用者名稱" />
+
+                <TextView
+                    android:id="@+id/tv_settings_role_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/space_sm"
+                    android:background="@drawable/bg_adrift_map_chip"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="2dp"
+                    android:text="ADMIN"
+                    android:textColor="@color/adrift_accent"
+                    android:textSize="10sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_settings_email"
+                style="@style/Text.Adrift.BodySecondary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs"
+                android:text="正在同步帳號資料" />
+
+            <TextView
+                android:id="@+id/tv_settings_join_date"
+                style="@style/Text.Adrift.Metadata"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_sm"
+                android:text="註冊日期：---- -- --" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 分頁切換 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginBottom="@dimen/space_md"
+        android:background="@drawable/bg_edittext_dark"
+        android:orientation="horizontal"
+        android:padding="4dp">
 
         <TextView
-            android:id="@+id/tv_settings_email"
-            style="@style/Text.Adrift.BodySecondary"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_xs"
-            android:text="正在同步帳號資料" />
+            android:id="@+id/tab_settings_profile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_login_card"
+            android:gravity="center"
+            android:text="個人檔案"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tv_settings_join_date"
-            style="@style/Text.Adrift.Metadata"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_sm"
-            android:text="註冊日期：---- -- --" />
+            android:id="@+id/tab_settings_security"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="帳號安全"
+            android:textColor="@color/hint_text"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tab_settings_danger"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="危險區域"
+            android:textColor="@color/hint_text"
+            android:textSize="12sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <ScrollView
@@ -70,184 +154,210 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_adrift_card"
-            android:orientation="vertical"
-            android:padding="@dimen/space_sm">
+            android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/header_edit_name"
-                style="@style/Text.Adrift.Headline"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/touch_target"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="@dimen/space_sm"
-                android:text="修改使用者名稱"
-                android:textColor="@color/adrift_accent" />
-
+            <!-- 分頁一：個人檔案 -->
             <LinearLayout
-                android:id="@+id/layout_edit_name"
+                android:id="@+id/tab_content_profile"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_adrift_card"
+                android:orientation="vertical"
+                android:padding="@dimen/space_sm"
+                android:visibility="visible">
+
+                <TextView
+                    android:id="@+id/header_edit_name"
+                    style="@style/Text.Adrift.Headline"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/touch_target"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/space_sm"
+                    android:text="修改使用者名稱"
+                    android:textColor="@color/adrift_accent" />
+
+                <LinearLayout
+                    android:id="@+id/layout_edit_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_sm"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/et_new_name"
+                        style="@style/Widget.Adrift.Input"
+                        android:layout_width="match_parent"
+                        android:hint="輸入新的名稱"
+                        android:imeOptions="actionDone" />
+
+                    <Button
+                        android:id="@+id/btn_save_name"
+                        style="@style/Widget.Adrift.Button.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:text="儲存新名稱" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/adrift_divider" />
+
+                <TextView
+                    android:id="@+id/header_edit_email"
+                    style="@style/Text.Adrift.Headline"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/touch_target"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/space_sm"
+                    android:text="變更電子信箱"
+                    android:textColor="@color/adrift_accent" />
+
+                <LinearLayout
+                    android:id="@+id/layout_edit_email"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_sm"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/et_current_pwd_for_email"
+                        style="@style/Widget.Adrift.Input"
+                        android:layout_width="match_parent"
+                        android:layout_marginBottom="@dimen/space_sm"
+                        android:hint="請輸入目前密碼以驗證身份"
+                        android:imeOptions="actionNext"
+                        android:inputType="textPassword" />
+
+                    <EditText
+                        android:id="@+id/et_new_email"
+                        style="@style/Widget.Adrift.Input"
+                        android:layout_width="match_parent"
+                        android:hint="輸入新的電子信箱"
+                        android:imeOptions="actionDone"
+                        android:inputType="textEmailAddress" />
+
+                    <Button
+                        android:id="@+id/btn_save_email"
+                        style="@style/Widget.Adrift.Button.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:text="驗證並更新 Email" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 分頁二：帳號安全 -->
+            <LinearLayout
+                android:id="@+id/tab_content_security"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_adrift_card"
                 android:orientation="vertical"
                 android:padding="@dimen/space_sm"
                 android:visibility="gone">
 
-                <EditText
-                    android:id="@+id/et_new_name"
-                    style="@style/Widget.Adrift.Input"
+                <TextView
+                    android:id="@+id/header_edit_password"
+                    style="@style/Text.Adrift.Headline"
                     android:layout_width="match_parent"
-                    android:hint="輸入新的名稱"
-                    android:imeOptions="actionDone" />
+                    android:layout_height="@dimen/touch_target"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/space_sm"
+                    android:text="變更帳號密碼"
+                    android:textColor="@color/adrift_accent" />
 
-                <Button
-                    android:id="@+id/btn_save_name"
-                    style="@style/Widget.Adrift.Button.Secondary"
+                <LinearLayout
+                    android:id="@+id/layout_edit_password"
                     android:layout_width="match_parent"
-                    android:layout_marginTop="@dimen/space_sm"
-                    android:text="儲存新名稱" />
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_sm"
+                    android:visibility="gone">
+
+                    <EditText
+                        android:id="@+id/et_current_pwd"
+                        style="@style/Widget.Adrift.Input"
+                        android:layout_width="match_parent"
+                        android:layout_marginBottom="@dimen/space_sm"
+                        android:hint="目前密碼"
+                        android:imeOptions="actionNext"
+                        android:inputType="textPassword" />
+
+                    <EditText
+                        android:id="@+id/et_new_pwd"
+                        style="@style/Widget.Adrift.Input"
+                        android:layout_width="match_parent"
+                        android:layout_marginBottom="@dimen/space_sm"
+                        android:hint="新密碼 (至少 6 個字元)"
+                        android:imeOptions="actionNext"
+                        android:inputType="textPassword" />
+
+                    <EditText
+                        android:id="@+id/et_confirm_pwd"
+                        style="@style/Widget.Adrift.Input"
+                        android:layout_width="match_parent"
+                        android:hint="再次確認新密碼"
+                        android:imeOptions="actionDone"
+                        android:inputType="textPassword" />
+
+                    <Button
+                        android:id="@+id/btn_save_password"
+                        style="@style/Widget.Adrift.Button.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_marginTop="@dimen/space_sm"
+                        android:text="更新密碼" />
+                </LinearLayout>
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/adrift_divider" />
-
-            <TextView
-                android:id="@+id/header_edit_email"
-                style="@style/Text.Adrift.Headline"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/touch_target"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="@dimen/space_sm"
-                android:text="變更電子信箱"
-                android:textColor="@color/adrift_accent" />
-
+            <!-- 分頁三：危險區域 -->
             <LinearLayout
-                android:id="@+id/layout_edit_email"
+                android:id="@+id/tab_content_danger"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_adrift_card"
                 android:orientation="vertical"
                 android:padding="@dimen/space_sm"
                 android:visibility="gone">
 
-                <EditText
-                    android:id="@+id/et_current_pwd_for_email"
-                    style="@style/Widget.Adrift.Input"
+                <TextView
+                    android:id="@+id/header_danger_zone"
+                    style="@style/Text.Adrift.Headline"
                     android:layout_width="match_parent"
-                    android:layout_marginBottom="@dimen/space_sm"
-                    android:hint="請輸入目前密碼以驗證身份"
-                    android:imeOptions="actionNext"
-                    android:inputType="textPassword" />
+                    android:layout_height="@dimen/touch_target"
+                    android:background="@drawable/bg_adrift_button_danger"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/space_md"
+                    android:text="永久刪除此帳號"
+                    android:textColor="@color/adrift_error" />
 
-                <EditText
-                    android:id="@+id/et_new_email"
-                    style="@style/Widget.Adrift.Input"
+                <TextView
+                    android:id="@+id/header_logout"
+                    style="@style/Text.Adrift.Headline"
                     android:layout_width="match_parent"
-                    android:hint="輸入新的電子信箱"
-                    android:imeOptions="actionDone"
-                    android:inputType="textEmailAddress" />
-
-                <Button
-                    android:id="@+id/btn_save_email"
-                    style="@style/Widget.Adrift.Button.Secondary"
-                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/touch_target"
                     android:layout_marginTop="@dimen/space_sm"
-                    android:text="驗證並更新 Email" />
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/space_md"
+                    android:text="登出"
+                    android:textColor="@color/adrift_accent" />
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/adrift_divider" />
-
-            <TextView
-                android:id="@+id/header_edit_password"
-                style="@style/Text.Adrift.Headline"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/touch_target"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="@dimen/space_sm"
-                android:text="變更帳號密碼"
-                android:textColor="@color/adrift_accent" />
-
-            <LinearLayout
-                android:id="@+id/layout_edit_password"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/space_sm"
-                android:visibility="gone">
-
-                <EditText
-                    android:id="@+id/et_current_pwd"
-                    style="@style/Widget.Adrift.Input"
-                    android:layout_width="match_parent"
-                    android:layout_marginBottom="@dimen/space_sm"
-                    android:hint="目前密碼"
-                    android:imeOptions="actionNext"
-                    android:inputType="textPassword" />
-
-                <EditText
-                    android:id="@+id/et_new_pwd"
-                    style="@style/Widget.Adrift.Input"
-                    android:layout_width="match_parent"
-                    android:layout_marginBottom="@dimen/space_sm"
-                    android:hint="新密碼 (至少 6 個字元)"
-                    android:imeOptions="actionNext"
-                    android:inputType="textPassword" />
-
-                <EditText
-                    android:id="@+id/et_confirm_pwd"
-                    style="@style/Widget.Adrift.Input"
-                    android:layout_width="match_parent"
-                    android:hint="再次確認新密碼"
-                    android:imeOptions="actionDone"
-                    android:inputType="textPassword" />
-
-                <Button
-                    android:id="@+id/btn_save_password"
-                    style="@style/Widget.Adrift.Button.Secondary"
-                    android:layout_width="match_parent"
-                    android:layout_marginTop="@dimen/space_sm"
-                    android:text="更新密碼" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/header_danger_zone"
-                style="@style/Text.Adrift.Headline"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/touch_target"
-                android:layout_marginTop="@dimen/space_lg"
-                android:background="@drawable/bg_adrift_button_danger"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="@dimen/space_md"
-                android:text="永久刪除此帳號"
-                android:textColor="@color/adrift_error" />
-
-            <TextView
-                android:id="@+id/header_logout"
-                style="@style/Text.Adrift.Headline"
-                android:layout_width="match_parent"
-                android:layout_height="@dimen/touch_target"
-                android:layout_marginTop="@dimen/space_sm"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="@dimen/space_md"
-                android:text="登出"
-                android:textColor="@color/adrift_accent" />
         </LinearLayout>
     </ScrollView>
 

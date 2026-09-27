@@ -408,9 +408,72 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             });
         }
         if (mapIdentityChip != null) {
-            mapIdentityChip.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+            mapIdentityChip.setOnClickListener(this::showIdentityPopupMenu);
         }
         bindMapIdentity(sessionManager == null ? null : sessionManager.getUser());
+    }
+    private void showIdentityPopupMenu(View anchor) {
+        View popupView = LayoutInflater.from(this).inflate(R.layout.popup_identity_menu, null);
+
+        TextView tvAvatar = popupView.findViewById(R.id.tv_popup_avatar);
+        TextView tvName = popupView.findViewById(R.id.tv_popup_name);
+        TextView tvRoleBadge = popupView.findViewById(R.id.tv_popup_role_badge);
+        TextView tvUserCode = popupView.findViewById(R.id.tv_popup_usercode);
+        TextView btnCopy = popupView.findViewById(R.id.btn_popup_copy);
+        View btnMyAccount = popupView.findViewById(R.id.btn_popup_my_account);
+        View btnAdmin = popupView.findViewById(R.id.btn_popup_admin);
+        View btnLogout = popupView.findViewById(R.id.btn_popup_logout);
+
+        UserDto user = sessionManager == null ? null : sessionManager.getUser();
+        String displayName = user != null ? user.getDisplayName() : "Adrift";
+        String userCode = user != null ? user.getUserCode() : "";
+        String role = user != null && user.role != null ? user.role : "user";
+
+        tvName.setText(displayName);
+        tvAvatar.setText(displayName.isEmpty() ? "A" : displayName.substring(0, 1));
+        tvUserCode.setText(userCode.isEmpty() ? "@adrift" : "@" + userCode);
+
+        boolean isAdmin = "admin".equals(role) || "owner".equals(role);
+        tvRoleBadge.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
+        tvRoleBadge.setText(role.toUpperCase());
+        btnAdmin.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
+
+        android.widget.PopupWindow popupWindow = new android.widget.PopupWindow(
+                popupView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+        );
+        popupWindow.setElevation(12f);
+        popupWindow.setOutsideTouchable(true);
+
+        btnCopy.setOnClickListener(v -> {
+            android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("userCode", tvUserCode.getText()));
+            Toast.makeText(this, "已複製", Toast.LENGTH_SHORT).show();
+        });
+
+        btnMyAccount.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            startActivity(new Intent(this, SettingsActivity.class));
+        });
+
+        btnAdmin.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            Toast.makeText(this, "管理員後台開發中", Toast.LENGTH_SHORT).show();
+        });
+
+        btnLogout.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            sessionManager.clear();
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        });
+
+        popupWindow.showAsDropDown(anchor, 0, 8);
     }
 
     private void initAppNavigation() {
@@ -786,13 +849,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private void updateDiaryList() {
         displayedDiaries.clear();
         for (DiaryEntry entry : markerDataMap.values()) {
-            // 🎯 修正核心：
-            // 1. 如果 currentFilter == -1 (代表現在沒有按[私人/朋友/公開]過濾，想看全部) -> 直接不卡 isShowingMine，全部放行！
-            // 2. 如果有按特定權限過濾，才去嚴格比對分頁。
-            if (currentFilter == -1 || (isShowingMine ? entry.isMine : true)) {
-                if (currentFilter == -1 || entry.visibility == currentFilter) {
-                    displayedDiaries.add(entry);
-                }
+            if (currentFilter == -1 || entry.visibility == currentFilter) {
+                displayedDiaries.add(entry);
             }
         }
         Collections.sort(displayedDiaries, (d1, d2) -> d2.time.compareTo(d1.time));
@@ -1284,6 +1342,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                     if (entry.isMine) mineCount++;
                                 }
                             }
+                            Collections.sort(nearbyDiaries, (d1, d2) -> d2.time.compareTo(d1.time));
+
                             if (tvNearbyMineCount != null) tvNearbyMineCount.setText(String.valueOf(mineCount));
                             if (tvNearbyVisibleCount != null) tvNearbyVisibleCount.setText(String.valueOf(nearbyDiaries.size()));
                             if (tvEmptyNearby != null) tvEmptyNearby.setVisibility(nearbyDiaries.isEmpty() ? View.VISIBLE : View.GONE);
@@ -1436,8 +1496,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             holder.tvSmile.setText("😊 " + entry.smileCount);
             holder.tvSurprise.setText("☔ " + entry.surpriseCount);
 
-            String icon = (entry.visibility == 0) ? "🔒" : (entry.visibility == 1) ? "👥" : "👁️";
-            if (holder.tvIcon != null) holder.tvIcon.setText(icon);
+            if (holder.tvIcon != null) holder.tvIcon.setVisibility(View.GONE);
 
             if (holder.tvItemAuthor != null) {
                 String authorName = entry.authorName == null || entry.authorName.isEmpty() ? "Adrift" : entry.authorName;
@@ -1487,8 +1546,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             holder.tvHeart.setText("❤️ " + entry.heartCount);
             holder.tvSmile.setText("😊 " + entry.smileCount);
             holder.tvSurprise.setText("☔ " + entry.surpriseCount);
-            String icon = (entry.visibility == 0) ? "🔒" : (entry.visibility == 1) ? "👥" : "👁️";
-            if (holder.tvIcon != null) holder.tvIcon.setText(icon);
+            if (holder.tvIcon != null) holder.tvIcon.setVisibility(View.GONE);
             if (holder.tvItemAuthor != null) {
                 String authorName = entry.authorName == null || entry.authorName.isEmpty() ? "Adrift" : entry.authorName;
                 holder.tvItemAuthor.setText("@" + authorName);

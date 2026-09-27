@@ -1,5 +1,6 @@
 package com.example.topics;
 
+import com.example.topics.data.model.AvatarUpdateData;
 import com.example.topics.data.model.ApiResponse;
 import com.example.topics.data.model.AuthResponse;
 import com.example.topics.data.model.DiaryDetailData;
@@ -128,4 +129,10 @@ public interface ApiService {
 
     @GET("ai/life-map")
     Call<ApiResponse<LifeMapData>> getLifeMapInsight();
+    @Multipart
+    @PATCH("users/me/avatar")
+    Call<ApiResponse<AvatarUpdateData>> updateAvatar(@Part MultipartBody.Part avatar);
+
+    @DELETE("users/me/avatar")
+    Call<ApiResponse<AvatarUpdateData>> deleteAvatar();
 }

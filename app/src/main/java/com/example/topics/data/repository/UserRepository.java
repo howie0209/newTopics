@@ -12,6 +12,9 @@ import java.util.Map;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import android.net.Uri;
+import com.example.topics.data.model.AvatarUpdateData;
+import okhttp3.MultipartBody;
 
 public class UserRepository extends BaseRepository {
     private final ApiService api;
@@ -73,6 +76,46 @@ public class UserRepository extends BaseRepository {
         body.put("password", password);
         body.put("confirmText", "DELETE");
         api.deleteAccount(body).enqueue(emptyCallback(callback));
+    }
+    public void updateAvatar(Context context, Uri imageUri, RepositoryCallback<UserDto> callback) {
+        MultipartBody.Part avatarPart = imagePart(context, imageUri, "avatar");
+        api.updateAvatar(avatarPart).enqueue(new Callback<ApiResponse<AvatarUpdateData>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<AvatarUpdateData>> call, Response<ApiResponse<AvatarUpdateData>> response) {
+                ApiResponse<AvatarUpdateData> body = response.body();
+                if (response.isSuccessful() && body != null && body.success && body.data != null && body.data.user != null) {
+                    sessionManager.saveUser(body.data.user);
+                    callback.onSuccess(body.data.user);
+                    return;
+                }
+                callback.onError(extractMessage(response, body));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<AvatarUpdateData>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
+    }
+
+    public void deleteAvatar(RepositoryCallback<UserDto> callback) {
+        api.deleteAvatar().enqueue(new Callback<ApiResponse<AvatarUpdateData>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<AvatarUpdateData>> call, Response<ApiResponse<AvatarUpdateData>> response) {
+                ApiResponse<AvatarUpdateData> body = response.body();
+                if (response.isSuccessful() && body != null && body.success && body.data != null && body.data.user != null) {
+                    sessionManager.saveUser(body.data.user);
+                    callback.onSuccess(body.data.user);
+                    return;
+                }
+                callback.onError(extractMessage(response, body));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<AvatarUpdateData>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
     }
 
     private Callback<ApiResponse<EmptyResponse>> refreshUserAfterMutation(RepositoryCallback<UserDto> callback) {

@@ -1,11 +1,7 @@
 package com.example.topics.data.repository;
 
-import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
 import android.net.Uri;
-import android.provider.OpenableColumns;
-import android.webkit.MimeTypeMap;
 
 import com.example.topics.ApiService;
 import com.example.topics.data.model.ApiResponse;
@@ -16,16 +12,12 @@ import com.example.topics.data.model.EmptyResponse;
 import com.example.topics.data.model.ReactionUpdateData;
 import com.example.topics.data.remote.ApiClient;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
-import okio.BufferedSink;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -100,7 +92,7 @@ public class DiaryRepository extends BaseRepository {
         fields.put("placeName", textPart(placeName == null ? "" : placeName));
         fields.put("locationAccuracy", textPart("precise"));
 
-        api.createDiary(fields, imagePart(imageUri)).enqueue(new Callback<ApiResponse<DiaryDetailData>>() {
+        api.createDiary(fields, imagePart(appContext, imageUri, "image")).enqueue(new Callback<ApiResponse<DiaryDetailData>>() {
             @Override
             public void onResponse(Call<ApiResponse<DiaryDetailData>> call, Response<ApiResponse<DiaryDetailData>> response) {
                 ApiResponse<DiaryDetailData> body = response.body();
@@ -198,77 +190,5 @@ public class DiaryRepository extends BaseRepository {
                 callback.onError(networkMessage(t));
             }
         });
-    }
-
-    private MultipartBody.Part imagePart(Uri uri) {
-        if (uri == null) return null;
-        String mimeType = appContext.getContentResolver().getType(uri);
-        if (mimeType == null || mimeType.isEmpty()) mimeType = "image/jpeg";
-        RequestBody requestBody = new UriRequestBody(appContext.getContentResolver(), uri, mimeType, querySize(uri));
-        return MultipartBody.Part.createFormData("image", queryName(uri, mimeType), requestBody);
-    }
-
-    private RequestBody textPart(String value) {
-        return RequestBody.create(MediaType.parse("text/plain"), value == null ? "" : value);
-    }
-
-    private String queryName(Uri uri, String mimeType) {
-        String name = null;
-        try (Cursor cursor = appContext.getContentResolver().query(uri, null, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                if (index >= 0) name = cursor.getString(index);
-            }
-        }
-        if (name != null && !name.trim().isEmpty()) return name;
-        String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
-        if (extension == null || extension.isEmpty()) extension = "jpg";
-        return "adrift-diary-" + System.currentTimeMillis() + "." + extension;
-    }
-
-    private long querySize(Uri uri) {
-        try (Cursor cursor = appContext.getContentResolver().query(uri, null, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                int index = cursor.getColumnIndex(OpenableColumns.SIZE);
-                if (index >= 0 && !cursor.isNull(index)) return cursor.getLong(index);
-            }
-        }
-        return -1L;
-    }
-
-    private static class UriRequestBody extends RequestBody {
-        private final ContentResolver resolver;
-        private final Uri uri;
-        private final String mimeType;
-        private final long size;
-
-        UriRequestBody(ContentResolver resolver, Uri uri, String mimeType, long size) {
-            this.resolver = resolver;
-            this.uri = uri;
-            this.mimeType = mimeType;
-            this.size = size;
-        }
-
-        @Override
-        public MediaType contentType() {
-            return MediaType.parse(mimeType);
-        }
-
-        @Override
-        public long contentLength() {
-            return size;
-        }
-
-        @Override
-        public void writeTo(BufferedSink sink) throws IOException {
-            try (InputStream input = resolver.openInputStream(uri)) {
-                if (input == null) throw new IOException("無法讀取圖片");
-                byte[] buffer = new byte[8192];
-                int read;
-                while ((read = input.read(buffer)) != -1) {
-                    sink.write(buffer, 0, read);
-                }
-            }
-        }
     }
 }
