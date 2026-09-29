@@ -144,7 +144,7 @@ public class FriendsActivity extends AppCompatActivity {
             AppNavigator.openTopLevel(this, MapActivity.class);
         });
         findViewById(R.id.friends_nav_explore).setOnClickListener(v -> AppNavigator.openTopLevel(this, ExploreActivity.class));
-        findViewById(R.id.friends_nav_settings).setOnClickListener(v -> AppNavigator.openTopLevel(this, SettingsActivity.class));
+        findViewById(R.id.friends_nav_settings).setOnClickListener(v -> startActivity(new Intent(this, InsightActivity.class)));
     }
 
     private void showTab(String tab) {

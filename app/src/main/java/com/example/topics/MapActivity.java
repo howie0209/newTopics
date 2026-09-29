@@ -461,7 +461,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         btnAdmin.setOnClickListener(v -> {
             popupWindow.dismiss();
-            Toast.makeText(this, "管理員後台開發中", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, AdminActivity.class));
         });
 
         btnLogout.setOnClickListener(v -> {

@@ -34,6 +34,8 @@ import com.google.android.gms.location.LocationServices;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class ExploreActivity extends AppCompatActivity {
     private static final int DEFAULT_RADIUS = 5000;
@@ -127,7 +129,7 @@ public class ExploreActivity extends AppCompatActivity {
             AppNavigator.openTopLevel(this, MapActivity.class);
         });
         findViewById(R.id.explore_nav_friends).setOnClickListener(v -> AppNavigator.openTopLevel(this, FriendsActivity.class));
-        findViewById(R.id.explore_nav_settings).setOnClickListener(v -> AppNavigator.openTopLevel(this, SettingsActivity.class));
+        findViewById(R.id.explore_nav_settings).setOnClickListener(v -> startActivity(new Intent(this, InsightActivity.class)));
     }
 
     private void selectRadius(int nextRadius) {
@@ -189,8 +191,14 @@ public class ExploreActivity extends AppCompatActivity {
                 loading = false;
                 refreshButton.setEnabled(true);
                 refreshButton.setText("刷新");
-                adapter.submit(value);
-                int count = value == null ? 0 : value.size();
+                List<DiaryDto> sorted = value == null ? new ArrayList<>() : new ArrayList<>(value);
+                Collections.sort(sorted, (d1, d2) -> {
+                    String t1 = d1.createdAt == null ? "" : d1.createdAt;
+                    String t2 = d2.createdAt == null ? "" : d2.createdAt;
+                    return t2.compareTo(t1);
+                });
+                adapter.submit(sorted);
+                int count = sorted.size();
                 statusView.setText(count == 0 ? "附近沒有公開日記" : "附近公開日記 " + count + " 篇");
             }
 

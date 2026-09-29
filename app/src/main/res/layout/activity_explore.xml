@@ -125,9 +125,9 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:contentDescription="切換到設定"
+            android:contentDescription="切換到 Adrift Intelligence"
             android:gravity="center"
-            android:text="設定"
+            android:text="Adrift Intelligence"
             android:textColor="@color/adrift_text_secondary"
             android:textStyle="bold" />
     </LinearLayout>

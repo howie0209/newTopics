@@ -15,6 +15,11 @@ import com.example.topics.data.model.RegisterRequest;
 import com.example.topics.data.model.ReactionUpdateData;
 import com.example.topics.data.model.SearchUserResult;
 import com.example.topics.data.model.UserDto;
+import com.example.topics.data.model.AdminDiaryListData;
+import com.example.topics.data.model.AdminStatsData;
+import com.example.topics.data.model.AdminUserDto;
+import com.example.topics.data.model.AdminUserListData;
+import retrofit2.http.QueryMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,4 +140,22 @@ public interface ApiService {
 
     @DELETE("users/me/avatar")
     Call<ApiResponse<AvatarUpdateData>> deleteAvatar();
+
+    @GET("admin/stats")
+    Call<ApiResponse<AdminStatsData>> getAdminStats();
+
+    @GET("admin/users")
+    Call<ApiResponse<AdminUserListData>> getAdminUsers(@QueryMap Map<String, String> query);
+
+    @PATCH("admin/users/{id}/role")
+    Call<ApiResponse<AdminUserDto>> updateAdminUserRole(@Path("id") String id, @Body Map<String, String> body);
+
+    @DELETE("admin/users/{id}")
+    Call<ApiResponse<EmptyResponse>> deleteAdminUser(@Path("id") String id);
+
+    @GET("admin/diaries")
+    Call<ApiResponse<AdminDiaryListData>> getAdminDiaries(@QueryMap Map<String, String> query);
+
+    @DELETE("admin/diaries/{id}")
+    Call<ApiResponse<EmptyResponse>> deleteAdminDiary(@Path("id") String id);
 }

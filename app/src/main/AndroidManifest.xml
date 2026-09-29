@@ -59,6 +59,8 @@
             android:value="AIzaSyA2MjUo1T8NsII2cz5dtPjXwAhm9S7CtVo" />
         <activity android:name=".InsightActivity" />
 
+        <activity android:name=".AdminActivity" />
+
     </application>
 
 </manifest>

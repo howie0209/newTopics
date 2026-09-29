@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_adrift_preview_card"
+    android:elevation="16dp"
+    android:orientation="vertical"
+    android:padding="@dimen/space_md">
+
+    <!-- 作者 + 關閉 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_dialog_diary_author"
+            style="@style/Text.Adrift.Caption"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:textColor="@color/adrift_text_primary"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btn_dialog_diary_close"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:background="@drawable/bg_adrift_map_button"
+            android:contentDescription="關閉"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="@color/adrift_text_secondary" />
+    </LinearLayout>
+
+    <!-- 標題/內容/meta + 圖片 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_dialog_diary_title"
+                style="@style/Text.Adrift.Headline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/tv_dialog_diary_text"
+                style="@style/Text.Adrift.BodySecondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs"
+                android:maxLines="4" />
+
+            <TextView
+                android:id="@+id/tv_dialog_diary_meta"
+                style="@style/Text.Adrift.Metadata"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_sm" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/iv_dialog_diary_image"
+            android:layout_width="92dp"
+            android:layout_height="76dp"
+            android:layout_marginStart="@dimen/space_md"
+            android:background="@drawable/bg_image_placeholder"
+            android:contentDescription="日記圖片"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- 心情 + 操作 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_sm"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/tv_dialog_diary_mood"
+            style="@style/Text.Adrift.Metadata"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:background="@drawable/bg_adrift_map_chip"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/space_sm"
+            android:textColor="@color/adrift_accent" />
+
+        <TextView
+            android:id="@+id/tv_dialog_diary_visibility"
+            style="@style/Text.Adrift.Metadata"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_sm"
+            android:layout_weight="1"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/tv_dialog_diary_delete"
+            style="@style/Text.Adrift.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="刪除"
+            android:textColor="#FFAB6B" />
+    </LinearLayout>
+</LinearLayout>
