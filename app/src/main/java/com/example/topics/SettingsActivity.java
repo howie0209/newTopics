@@ -1,15 +1,26 @@
 package com.example.topics;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.util.Patterns;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -25,21 +36,40 @@ import com.example.topics.data.repository.RepositoryCallback;
 import com.example.topics.data.repository.UserRepository;
 import com.example.topics.ui.common.AppNavigator;
 import com.example.topics.ui.design.AdriftSystemUi;
+import com.example.topics.ui.settings.AvatarCropView;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class SettingsActivity extends AppCompatActivity {
+
+    private static final long MAX_AVATAR_BYTES = 10 * 1024 * 1024;
 
     private UserRepository userRepository;
     private SessionManager sessionManager;
 
-    // UI 元件
-    private TextView tvUsername, tvEmail, tvJoinDate, tvRoleBadge;
+    // 頂部摘要卡
+    private TextView tvUsername, tvUsercode, tvRoleBadge;
     private ImageView ivAvatar;
+
+    // 個人檔案分頁內容
+    private ImageView ivAvatarLarge;
+    private Button btnUploadAvatar, btnRemoveAvatar;
+    private TextView tvProfileRowName, tvSettingsEmail, tvProfileRowUsercode, tvProfileRowRole, tvSettingsJoinDate;
+    private Button btnEditName, btnEditEmail, btnCopyUsercode;
+
     private ActivityResultLauncher<Intent> avatarPickerLauncher;
     private LinearLayout layoutEditName, layoutEditEmail, layoutEditPassword;
     private EditText etNewName, etCurrentPwdForEmail, etNewEmail, etCurrentPwd, etNewPwd, etConfirmPwd;
     private Button btnSaveName, btnSaveEmail, btnSavePassword;
+    private Button btnCancelName, btnCancelEmail, btnCancelPassword;
     private boolean settingsBusy;
     private boolean destroyed;
+
+    private String originalName = "";
+    private String originalEmail = "";
 
     // 分頁
     private TextView tabProfile, tabSecurity, tabDanger;
@@ -55,22 +85,27 @@ public class SettingsActivity extends AppCompatActivity {
         sessionManager = SessionManager.getInstance(this);
 
         initViews();
+
         avatarPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null && result.getData().getData() != null) {
-                        Uri uri = result.getData().getData();
-                        uploadAvatar(uri);
+                        handleAvatarSelected(result.getData().getData());
                     }
                 }
         );
-        if (ivAvatar != null) {
-            ivAvatar.setOnClickListener(v -> {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("image/*");
-                avatarPickerLauncher.launch(Intent.createChooser(intent, "選擇頭貼"));
-            });
-        }
+
+        View.OnClickListener pickAvatar = v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            avatarPickerLauncher.launch(Intent.createChooser(intent, "選擇頭貼"));
+        };
+        if (ivAvatar != null) ivAvatar.setOnClickListener(pickAvatar);
+        if (ivAvatarLarge != null) ivAvatarLarge.setOnClickListener(pickAvatar);
+        if (btnUploadAvatar != null) btnUploadAvatar.setOnClickListener(pickAvatar);
+        if (btnRemoveAvatar != null) btnRemoveAvatar.setOnClickListener(v -> removeAvatar());
+
+        setupDirtyCheck();
         loadUserProfile();
         setupClickListeners();
         selectSettingsTab("profile");
@@ -78,12 +113,22 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void initViews() {
         tvUsername = findViewById(R.id.tv_settings_username);
-        tvEmail = findViewById(R.id.tv_settings_email);
-        tvJoinDate = findViewById(R.id.tv_settings_join_date);
+        tvUsercode = findViewById(R.id.tv_settings_usercode);
         tvRoleBadge = findViewById(R.id.tv_settings_role_badge);
         ivAvatar = findViewById(R.id.iv_settings_avatar);
 
-        // 分頁按鈕與內容容器
+        ivAvatarLarge = findViewById(R.id.iv_settings_avatar_large);
+        btnUploadAvatar = findViewById(R.id.btn_upload_avatar);
+        btnRemoveAvatar = findViewById(R.id.btn_remove_avatar);
+        tvProfileRowName = findViewById(R.id.tv_profile_row_name);
+        tvSettingsEmail = findViewById(R.id.tv_settings_email);
+        tvProfileRowUsercode = findViewById(R.id.tv_profile_row_usercode);
+        tvProfileRowRole = findViewById(R.id.tv_profile_row_role);
+        tvSettingsJoinDate = findViewById(R.id.tv_settings_join_date);
+        btnEditName = findViewById(R.id.btn_edit_name);
+        btnEditEmail = findViewById(R.id.btn_edit_email);
+        btnCopyUsercode = findViewById(R.id.btn_copy_usercode);
+
         tabProfile = findViewById(R.id.tab_settings_profile);
         tabSecurity = findViewById(R.id.tab_settings_security);
         tabDanger = findViewById(R.id.tab_settings_danger);
@@ -91,12 +136,10 @@ public class SettingsActivity extends AppCompatActivity {
         contentSecurity = findViewById(R.id.tab_content_security);
         contentDanger = findViewById(R.id.tab_content_danger);
 
-        // 展開的面板容器
         layoutEditName = findViewById(R.id.layout_edit_name);
         layoutEditEmail = findViewById(R.id.layout_edit_email);
         layoutEditPassword = findViewById(R.id.layout_edit_password);
 
-        // 輸入框
         etNewName = findViewById(R.id.et_new_name);
         etCurrentPwdForEmail = findViewById(R.id.et_current_pwd_for_email);
         etNewEmail = findViewById(R.id.et_new_email);
@@ -106,23 +149,78 @@ public class SettingsActivity extends AppCompatActivity {
         btnSaveName = findViewById(R.id.btn_save_name);
         btnSaveEmail = findViewById(R.id.btn_save_email);
         btnSavePassword = findViewById(R.id.btn_save_password);
+        btnCancelName = findViewById(R.id.btn_cancel_name);
+        btnCancelEmail = findViewById(R.id.btn_cancel_email);
+        btnCancelPassword = findViewById(R.id.btn_cancel_password);
+    }
+
+    // ---- dirty check：名稱/Email 沒改過就 disable 儲存按鈕 ----
+    private void setupDirtyCheck() {
+        if (etNewName != null) {
+            etNewName.addTextChangedListener(new SimpleWatcher(() -> {
+                if (btnSaveName != null) {
+                    btnSaveName.setEnabled(!etNewName.getText().toString().trim().equals(originalName)
+                            && !etNewName.getText().toString().trim().isEmpty());
+                }
+            }));
+        }
+        if (etNewEmail != null) {
+            SimpleWatcher.Callback emailCheck = () -> {
+                if (btnSaveEmail != null) {
+                    boolean dirty = !etNewEmail.getText().toString().trim().equalsIgnoreCase(originalEmail);
+                    boolean hasPwd = etCurrentPwdForEmail != null && !etCurrentPwdForEmail.getText().toString().isEmpty();
+                    btnSaveEmail.setEnabled(dirty && hasPwd);
+                }
+            };
+            etNewEmail.addTextChangedListener(new SimpleWatcher(emailCheck));
+            if (etCurrentPwdForEmail != null) etCurrentPwdForEmail.addTextChangedListener(new SimpleWatcher(emailCheck));
+        }
+    }
+
+    private static class SimpleWatcher implements TextWatcher {
+        interface Callback { void run(); }
+        private final Callback callback;
+        SimpleWatcher(Callback callback) { this.callback = callback; }
+        @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+        @Override public void onTextChanged(CharSequence s, int start, int before, int count) { callback.run(); }
+        @Override public void afterTextChanged(Editable s) {}
     }
 
     private void setupClickListeners() {
-        // 返回按鈕
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
-        // 分頁切換
         if (tabProfile != null) tabProfile.setOnClickListener(v -> selectSettingsTab("profile"));
         if (tabSecurity != null) tabSecurity.setOnClickListener(v -> selectSettingsTab("security"));
         if (tabDanger != null) tabDanger.setOnClickListener(v -> selectSettingsTab("danger"));
 
-        // 面板展開/收合控制 (點擊標題展開，其他收合)
-        findViewById(R.id.header_edit_name).setOnClickListener(v -> togglePanel(layoutEditName));
-        findViewById(R.id.header_edit_email).setOnClickListener(v -> togglePanel(layoutEditEmail));
+        if (btnEditName != null) btnEditName.setOnClickListener(v -> togglePanel(layoutEditName));
+        if (btnEditEmail != null) btnEditEmail.setOnClickListener(v -> togglePanel(layoutEditEmail));
         findViewById(R.id.header_edit_password).setOnClickListener(v -> togglePanel(layoutEditPassword));
 
-        // 1. 儲存新名稱
+        if (btnCancelName != null) btnCancelName.setOnClickListener(v -> {
+            etNewName.setText(originalName);
+            layoutEditName.setVisibility(View.GONE);
+        });
+        if (btnCancelEmail != null) btnCancelEmail.setOnClickListener(v -> {
+            etNewEmail.setText(originalEmail);
+            etCurrentPwdForEmail.setText("");
+            layoutEditEmail.setVisibility(View.GONE);
+        });
+        if (btnCancelPassword != null) btnCancelPassword.setOnClickListener(v -> {
+            etCurrentPwd.setText("");
+            etNewPwd.setText("");
+            etConfirmPwd.setText("");
+            layoutEditPassword.setVisibility(View.GONE);
+        });
+
+        if (btnCopyUsercode != null) {
+            btnCopyUsercode.setOnClickListener(v -> {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(ClipData.newPlainText("userCode", tvProfileRowUsercode.getText()));
+                Toast.makeText(this, "已複製", Toast.LENGTH_SHORT).show();
+            });
+        }
+
         btnSaveName.setOnClickListener(v -> {
             if (settingsBusy) return;
             String newName = etNewName.getText().toString().trim();
@@ -134,7 +232,6 @@ public class SettingsActivity extends AppCompatActivity {
             userRepository.updateName(newName, new UserCallback("名稱更新成功", btnSaveName, "儲存新名稱"));
         });
 
-        // 2. 更新 Email
         btnSaveEmail.setOnClickListener(v -> {
             if (settingsBusy) return;
             String pwd = etCurrentPwdForEmail.getText().toString();
@@ -150,7 +247,6 @@ public class SettingsActivity extends AppCompatActivity {
             userRepository.updateEmail(newEmail, pwd, new UserCallback("Email 更新成功", btnSaveEmail, "驗證並更新 Email"));
         });
 
-        // 3. 更新密碼
         btnSavePassword.setOnClickListener(v -> {
             if (settingsBusy) return;
             String currentPwd = etCurrentPwd.getText().toString();
@@ -182,17 +278,13 @@ public class SettingsActivity extends AppCompatActivity {
             });
         });
 
-        // 4. 危險區域：刪除帳號
         findViewById(R.id.header_danger_zone).setOnClickListener(v -> showDeleteAccountDialog());
         findViewById(R.id.header_logout).setOnClickListener(v -> showLogoutDialog());
-        findViewById(R.id.settings_nav_map).setOnClickListener(v -> {
-            AppNavigator.openTopLevel(this, MapActivity.class);
-        });
+        findViewById(R.id.settings_nav_map).setOnClickListener(v -> AppNavigator.openTopLevel(this, MapActivity.class));
         findViewById(R.id.settings_nav_friends).setOnClickListener(v -> AppNavigator.openTopLevel(this, FriendsActivity.class));
         findViewById(R.id.settings_nav_explore).setOnClickListener(v -> AppNavigator.openTopLevel(this, ExploreActivity.class));
     }
 
-    // 分頁切換
     private void selectSettingsTab(String tab) {
         boolean isProfile = "profile".equals(tab);
         boolean isSecurity = "security".equals(tab);
@@ -218,7 +310,6 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    // 控制面板展開的輔助方法 (一次只展開一個)
     private void togglePanel(LinearLayout panelToToggle) {
         layoutEditName.setVisibility(View.GONE);
         layoutEditEmail.setVisibility(View.GONE);
@@ -226,19 +317,44 @@ public class SettingsActivity extends AppCompatActivity {
         panelToToggle.setVisibility(View.VISIBLE);
     }
 
-    // 載入基本資料
     private void loadUserProfile() {
         userRepository.getMe(new RepositoryCallback<UserDto>() {
             @Override
             public void onSuccess(UserDto user) {
                 if (!isActive()) return;
-                tvUsername.setText(user.getDisplayName());
-                tvEmail.setText(user.email == null ? "" : user.email);
-                if(user.createdAt != null && user.createdAt.length() >= 10) {
-                    tvJoinDate.setText(user.createdAt.substring(0, 10));
+
+                String displayName = user.getDisplayName();
+                String userCode = user.getUserCode();
+
+                originalName = displayName;
+                originalEmail = user.email == null ? "" : user.email;
+
+                tvUsername.setText(displayName);
+                if (tvUsercode != null) tvUsercode.setText(userCode.isEmpty() ? "@adrift" : "@" + userCode);
+
+                if (tvProfileRowName != null) tvProfileRowName.setText(displayName);
+                if (tvSettingsEmail != null) tvSettingsEmail.setText(originalEmail);
+                if (tvProfileRowUsercode != null) tvProfileRowUsercode.setText(userCode.isEmpty() ? "@adrift" : "@" + userCode);
+
+                if (etNewName != null) etNewName.setText(displayName);
+                if (etNewEmail != null) etNewEmail.setText(originalEmail);
+
+                String role = user.role == null ? "user" : user.role;
+                if (tvProfileRowRole != null) tvProfileRowRole.setText(capitalize(role));
+                boolean isPrivileged = "admin".equals(role) || "owner".equals(role);
+                if (tvRoleBadge != null) {
+                    tvRoleBadge.setVisibility(isPrivileged ? View.VISIBLE : View.GONE);
+                    tvRoleBadge.setText(role.toUpperCase());
                 }
+
+                if(user.createdAt != null && user.createdAt.length() >= 10 && tvSettingsJoinDate != null) {
+                    tvSettingsJoinDate.setText(user.createdAt.substring(0, 10));
+                }
+
                 bindAvatar(user);
-                bindRoleBadge(user);
+
+                if (btnSaveName != null) btnSaveName.setEnabled(false);
+                if (btnSaveEmail != null) btnSaveEmail.setEnabled(false);
             }
 
             @Override
@@ -249,27 +365,152 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    private String capitalize(String value) {
+        if (value == null || value.isEmpty()) return value;
+        return value.substring(0, 1).toUpperCase() + value.substring(1);
+    }
+
     private void bindAvatar(UserDto user) {
-        if (ivAvatar == null) return;
-        if (user.avatar != null && !user.avatar.trim().isEmpty()) {
-            Glide.with(SettingsActivity.this)
-                    .load(ImageUrlResolver.resolve(user.avatar))
-                    .placeholder(R.drawable.bg_adrift_avatar)
-                    .error(R.drawable.bg_adrift_avatar)
-                    .centerCrop()
-                    .into(ivAvatar);
-        } else {
-            Glide.with(SettingsActivity.this).clear(ivAvatar);
-            ivAvatar.setImageDrawable(null);
+        boolean hasAvatar = user.avatar != null && !user.avatar.trim().isEmpty();
+        ImageView[] targets = {ivAvatar, ivAvatarLarge};
+        for (ImageView target : targets) {
+            if (target == null) continue;
+            if (hasAvatar) {
+                Glide.with(SettingsActivity.this)
+                        .load(ImageUrlResolver.resolve(user.avatar))
+                        .placeholder(R.drawable.bg_adrift_avatar)
+                        .error(R.drawable.bg_adrift_avatar)
+                        .centerCrop()
+                        .into(target);
+            } else {
+                Glide.with(SettingsActivity.this).clear(target);
+                target.setImageDrawable(null);
+            }
+        }
+        if (btnRemoveAvatar != null) btnRemoveAvatar.setVisibility(hasAvatar ? View.VISIBLE : View.GONE);
+    }
+
+    // ---- 選圖後先驗證，再進裁切畫面 ----
+    private void handleAvatarSelected(Uri uri) {
+        String mimeType = getContentResolver().getType(uri);
+        if (mimeType == null || !(mimeType.equals("image/jpeg") || mimeType.equals("image/png") || mimeType.equals("image/webp"))) {
+            Toast.makeText(this, "頭貼僅支援 JPG、PNG、WebP", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        long size = queryFileSize(uri);
+        if (size > MAX_AVATAR_BYTES) {
+            Toast.makeText(this, "頭貼檔案不可超過 10MB", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Bitmap bitmap = decodeBitmap(uri);
+        if (bitmap == null) {
+            Toast.makeText(this, "無法讀取圖片", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (bitmap.getWidth() < 128 || bitmap.getHeight() < 128) {
+            Toast.makeText(this, "圖片尺寸太小，請上傳至少 128x128 的圖片", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        showAvatarCropDialog(bitmap);
+    }
+
+    private long queryFileSize(Uri uri) {
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int index = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (index >= 0 && !cursor.isNull(index)) return cursor.getLong(index);
+            }
+        }
+        return -1L;
+    }
+
+    private Bitmap decodeBitmap(Uri uri) {
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            return BitmapFactory.decodeStream(input);
+        } catch (IOException e) {
+            return null;
         }
     }
 
-    private void bindRoleBadge(UserDto user) {
-        if (tvRoleBadge == null) return;
-        String role = user.role == null ? "user" : user.role;
-        boolean isPrivileged = "admin".equals(role) || "owner".equals(role);
-        tvRoleBadge.setVisibility(isPrivileged ? View.VISIBLE : View.GONE);
-        tvRoleBadge.setText(role.toUpperCase());
+    // ---- 頭貼裁切對話框（拖曳 + 縮放）----
+    private void showAvatarCropDialog(Bitmap bitmap) {
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(24), dp(16), dp(24), dp(8));
+
+        TextView hint = new TextView(this);
+        hint.setText("拖曳圖片調整位置，使用滑桿調整縮放");
+        hint.setTextColor(getResources().getColor(R.color.hint_text));
+        hint.setTextSize(12);
+        container.addView(hint);
+
+        FrameLayout cropFrame = new FrameLayout(this);
+        LinearLayout.LayoutParams cropParams = new LinearLayout.LayoutParams(dp(260), dp(260));
+        cropParams.topMargin = dp(16);
+        cropParams.gravity = Gravity.CENTER_HORIZONTAL;
+        cropFrame.setLayoutParams(cropParams);
+
+        AvatarCropView cropView = new AvatarCropView(this);
+        cropView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        cropView.setBitmap(bitmap);
+        cropFrame.addView(cropView);
+        container.addView(cropFrame);
+
+        TextView zoomLabel = new TextView(this);
+        zoomLabel.setText("縮放");
+        zoomLabel.setTextColor(getResources().getColor(R.color.white));
+        zoomLabel.setTextSize(12);
+        LinearLayout.LayoutParams zoomLabelParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        zoomLabelParams.topMargin = dp(16);
+        zoomLabel.setLayoutParams(zoomLabelParams);
+        container.addView(zoomLabel);
+
+        SeekBar zoomSeekBar = new SeekBar(this);
+        zoomSeekBar.setMax(200);
+        zoomSeekBar.setProgress(0);
+        zoomSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                cropView.setZoom(1f + progress / 100f);
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+        container.addView(zoomSeekBar);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("調整頭貼")
+                .setView(container)
+                .setPositiveButton("儲存頭貼", null)
+                .setNegativeButton("取消", null)
+                .create();
+
+        dialog.setOnShowListener(shown -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            Bitmap cropped = cropView.getCroppedBitmap(512);
+            dialog.dismiss();
+            uploadCroppedAvatar(cropped);
+        }));
+        dialog.show();
+    }
+
+    private void uploadCroppedAvatar(Bitmap bitmap) {
+        try {
+            File file = new File(getCacheDir(), "avatar-" + System.currentTimeMillis() + ".jpg");
+            try (FileOutputStream out = new FileOutputStream(file)) {
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            }
+            uploadAvatar(Uri.fromFile(file));
+        } catch (IOException e) {
+            Toast.makeText(this, "頭貼裁切失敗", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private int dp(int value) {
+        return (int) (value * getResources().getDisplayMetrics().density);
     }
 
     private void uploadAvatar(Uri uri) {
@@ -289,7 +530,23 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
-    // 刪除帳號的警告彈窗
+    private void removeAvatar() {
+        userRepository.deleteAvatar(new RepositoryCallback<UserDto>() {
+            @Override
+            public void onSuccess(UserDto user) {
+                if (!isActive()) return;
+                Toast.makeText(SettingsActivity.this, "頭貼已移除", Toast.LENGTH_SHORT).show();
+                loadUserProfile();
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isActive()) return;
+                Toast.makeText(SettingsActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private void showDeleteAccountDialog() {
         LinearLayout fields = new LinearLayout(this);
         fields.setOrientation(LinearLayout.VERTICAL);
@@ -340,7 +597,6 @@ public class SettingsActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    // 登出並返回登入頁
     private void logoutUser() {
         sessionManager.clear();
         AppNavigator.openLoginAndClear(this);
@@ -374,7 +630,7 @@ public class SettingsActivity extends AppCompatActivity {
             layoutEditName.setVisibility(View.GONE);
             layoutEditEmail.setVisibility(View.GONE);
             layoutEditPassword.setVisibility(View.GONE);
-            etNewName.setText(""); etNewEmail.setText(""); etCurrentPwdForEmail.setText("");
+            etCurrentPwdForEmail.setText("");
         }
 
         @Override
