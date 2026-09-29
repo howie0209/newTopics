@@ -756,53 +756,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             updateStatistics();
             updateDiaryList();
 
-            // 💡 採用相同的 findViewById 方式獲取新設計的底欄元件
-            View btnLogout = navView.findViewById(R.id.btn_logout);
-            if (btnLogout != null) {
-                btnLogout.setOnClickListener(v -> {
-                    sessionManager.clear();
-                    Intent intent = new Intent(this, LoginActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                    finish();
-                });
-            }
-
-            // 2. 個人檔案區域按鈕：點擊整塊區域直接跳轉至設定頁面
-            View btnProfileSettings = navView.findViewById(R.id.btn_profile_settings);
-            if (btnProfileSettings != null) {
-                btnProfileSettings.setOnClickListener(v -> {
-                    Intent intent = new Intent(this, SettingsActivity.class);
-                    startActivity(intent);
-                });
-            }
-
-            View targetContainer = navView.getHeaderCount() > 0 ? navView.getHeaderView(0) : navView;
-            android.widget.TextView tvBotAvatar = targetContainer.findViewById(R.id.tv_bottom_avatar);
-            android.widget.TextView tvBotName = targetContainer.findViewById(R.id.tv_bottom_name);
-            android.widget.TextView tvBotUser = targetContainer.findViewById(R.id.tv_bottom_username);
-            bindBottomProfile(sessionManager.getUser(), tvBotAvatar, tvBotName, tvBotUser);
-            userRepository.getMe(new RepositoryCallback<UserDto>() {
-                @Override
-                public void onSuccess(UserDto user) {
-                    bindBottomProfile(user, tvBotAvatar, tvBotName, tvBotUser);
-                }
-
-                @Override
-                public void onError(String message) {
-                }
-            });
         }
     }
 
-    private void bindBottomProfile(UserDto user, TextView avatar, TextView name, TextView code) {
-        if (user == null) return;
-        String displayName = user.getDisplayName();
-        if (name != null) name.setText(displayName);
-        if (code != null) code.setText("@" + user.getUserCode());
-        if (avatar != null && !displayName.isEmpty()) avatar.setText(displayName.substring(0, 1));
-        bindMapIdentity(user);
-    }
 
     private void bindMapIdentity(UserDto user) {
         if (user == null) return;
