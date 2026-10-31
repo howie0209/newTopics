@@ -17,11 +17,14 @@ import com.example.topics.data.repository.RepositoryCallback;
 public class InsightActivity extends AppCompatActivity {
 
     private InsightRepository insightRepository;
+    private MemoryChatController chatController;
     private TextView tvStatus, tvSummary, tvMoodDescription, tvDominantMoodChip, tvIntensityChip;
     private ProgressBar progressIntensity;
     private LinearLayout layoutPreview, layoutLoading, layoutContent;
     private LinearLayout containerSuggestions, containerLocations, containerBehaviors;
     private Button btnRefresh, btnBackToMap;
+    private TextView tabAnalysis, tabChat;
+    private View scrollInsight, panelChat;
     private boolean destroyed;
 
     @Override
@@ -45,6 +48,10 @@ public class InsightActivity extends AppCompatActivity {
         containerBehaviors = findViewById(R.id.container_behaviors);
         btnRefresh = findViewById(R.id.btn_refresh_insight);
         btnBackToMap = findViewById(R.id.btn_back_to_map);
+        tabAnalysis = findViewById(R.id.tab_insight_analysis);
+        tabChat = findViewById(R.id.tab_insight_chat);
+        scrollInsight = findViewById(R.id.scroll_insight);
+        panelChat = findViewById(R.id.panel_chat);
 
         btnRefresh.setOnClickListener(v -> loadInsight());
         btnBackToMap.setOnClickListener(v -> {
@@ -52,7 +59,29 @@ public class InsightActivity extends AppCompatActivity {
             finish();
         });
 
+        chatController = new MemoryChatController(this);
+        tabAnalysis.setOnClickListener(v -> selectInsightTab(false));
+        tabChat.setOnClickListener(v -> selectInsightTab(true));
+        selectInsightTab(false);
+
         showInitialPreview();
+    }
+
+    private void selectInsightTab(boolean chat) {
+        scrollInsight.setVisibility(chat ? View.GONE : View.VISIBLE);
+        panelChat.setVisibility(chat ? View.VISIBLE : View.GONE);
+        updateTabStyle(tabAnalysis, !chat);
+        updateTabStyle(tabChat, chat);
+    }
+
+    private void updateTabStyle(TextView tab, boolean selected) {
+        if (selected) {
+            tab.setBackgroundResource(R.drawable.bg_login_card);
+            tab.setTextColor(getResources().getColor(R.color.white));
+        } else {
+            tab.setBackground(null);
+            tab.setTextColor(getResources().getColor(R.color.hint_text));
+        }
     }
 
     private void showInitialPreview() {
@@ -162,6 +191,7 @@ public class InsightActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         destroyed = true;
+        if (chatController != null) chatController.destroy();
         super.onDestroy();
     }
 }

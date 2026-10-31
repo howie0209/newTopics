@@ -14,6 +14,7 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okio.BufferedSink;
 import retrofit2.Response;
+import org.json.JSONObject;
 
 abstract class BaseRepository {
     protected <T> boolean dispatchIfSuccessful(Response<ApiResponse<T>> response, RepositoryCallback<T> callback) {
@@ -30,6 +31,14 @@ abstract class BaseRepository {
     protected <T> String extractMessage(Response<ApiResponse<T>> response, ApiResponse<T> body) {
         if (body != null && body.message != null && !body.message.isEmpty()) {
             return body.message;
+        }
+        try {
+            if (response.errorBody() != null) {
+                String raw = response.errorBody().string();
+                String message = new JSONObject(raw).optString("message", "");
+                if (!message.isEmpty()) return message;
+            }
+        } catch (Exception ignored) {
         }
         return "Request failed (" + response.code() + ")";
     }

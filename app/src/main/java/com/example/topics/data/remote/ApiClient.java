@@ -14,6 +14,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import java.util.concurrent.TimeUnit;
 
 public class ApiClient {
     public static final String BASE_URL = "https://adrifttw.com/api/";
@@ -29,8 +30,9 @@ public class ApiClient {
 
             OkHttpClient client = new OkHttpClient.Builder()
                     .addInterceptor(createAuthInterceptor(appContext, sessionManager))
+                    .readTimeout(65, TimeUnit.SECONDS)
+                    .writeTimeout(30, TimeUnit.SECONDS)
                     .build();
-
             retrofit = new Retrofit.Builder()
                     .baseUrl(BASE_URL)
                     .client(client)

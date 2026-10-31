@@ -37,6 +37,8 @@ import retrofit2.http.PartMap;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import com.example.topics.data.model.ChatData;
+import com.example.topics.data.model.ChatRequest;
 
 import com.example.topics.data.model.LifeMapData;
 
@@ -158,4 +160,7 @@ public interface ApiService {
 
     @DELETE("admin/diaries/{id}")
     Call<ApiResponse<EmptyResponse>> deleteAdminDiary(@Path("id") String id);
+
+    @POST("ai/chat")
+    Call<ApiResponse<ChatData>> chatMemory(@Body ChatRequest request);
 }
