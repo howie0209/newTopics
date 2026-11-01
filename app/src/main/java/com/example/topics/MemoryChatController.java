@@ -56,6 +56,11 @@ public class MemoryChatController {
     public void destroy() {
         destroyed = true;
     }
+    public void setDraft(String text) {
+        input.setText(text);
+        input.setSelection(input.getText().length());
+        input.requestFocus();
+    }
 
     private void send() {
         final String question = input.getText().toString().trim();

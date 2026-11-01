@@ -41,6 +41,7 @@ import com.example.topics.data.model.ChatData;
 import com.example.topics.data.model.ChatRequest;
 
 import com.example.topics.data.model.LifeMapData;
+import com.example.topics.data.model.OverviewData;
 
 public interface ApiService {
 
@@ -163,4 +164,6 @@ public interface ApiService {
 
     @POST("ai/chat")
     Call<ApiResponse<ChatData>> chatMemory(@Body ChatRequest request);
+    @GET("ai/overview")
+    Call<ApiResponse<OverviewData>> getIntelligenceOverview(@Query("days") int days);
 }

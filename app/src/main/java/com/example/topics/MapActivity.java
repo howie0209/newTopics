@@ -1265,6 +1265,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 updateDiaryList();
                 updateMapEmptyState();
                 hideMapStatus();
+
+                // 從 Adrift Intelligence 的「常去地點」點進來時，自動打開那篇日記
+                String openDiaryId = getIntent().getStringExtra("open_diary_id");
+                if (openDiaryId != null && markerDataMap.containsKey(openDiaryId)) {
+                    getIntent().removeExtra("open_diary_id");
+                    selectDiaryMarker(openDiaryId, true);
+                }
             }
 
             @Override

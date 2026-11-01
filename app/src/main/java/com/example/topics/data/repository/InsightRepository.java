@@ -6,6 +6,7 @@ import com.example.topics.data.model.ApiResponse;
 import com.example.topics.data.model.ChatData;
 import com.example.topics.data.model.ChatRequest;
 import com.example.topics.data.model.LifeMapData;
+import com.example.topics.data.model.OverviewData;
 import com.example.topics.data.remote.ApiClient;
 import com.google.gson.JsonElement;
 import java.util.List;
@@ -18,6 +19,25 @@ public class InsightRepository extends BaseRepository {
 
     public InsightRepository(Context context) {
         api = ApiClient.getService(context);
+    }
+
+    public void getOverview(int days, RepositoryCallback<OverviewData> callback) {
+        api.getIntelligenceOverview(days).enqueue(new Callback<ApiResponse<OverviewData>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<OverviewData>> call, Response<ApiResponse<OverviewData>> response) {
+                ApiResponse<OverviewData> body = response.body();
+                if (!response.isSuccessful() || body == null || !body.success || body.data == null) {
+                    callback.onError(extractMessage(response, body));
+                    return;
+                }
+                callback.onSuccess(body.data);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<OverviewData>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
     }
 
     public void getLifeMapInsight(RepositoryCallback<LifeMapData> callback) {
