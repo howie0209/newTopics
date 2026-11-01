@@ -5,10 +5,10 @@ import java.util.List;
 
 public class ChatRequest {
     public String message;
-    public List<String> history;
+    public List<ChatTurn> history;
     public JsonElement queryContext;
 
-    public ChatRequest(String message, List<String> history, JsonElement queryContext) {
+    public ChatRequest(String message, List<ChatTurn> history, JsonElement queryContext) {
         this.message = message;
         this.history = history;
         this.queryContext = queryContext;

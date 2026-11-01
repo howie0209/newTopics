@@ -10,5 +10,6 @@ public class ChatData {
     public List<ChatRelatedDiary> relatedDiaries;
     public int matchedCount;
     public int sampledCount;
+    public ChatEvidence evidence;
     public JsonElement queryContext;
 }

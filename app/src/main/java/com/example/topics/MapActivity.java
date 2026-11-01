@@ -135,6 +135,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private Map<String, String> markerDiaryIdMap = new HashMap<>();
     private Marker lastSelectedMarker = null;
     private String selectedDiaryId = null;
+    private DiaryMarkerLayer markerLayer;
     public String username; // 🎯 專門用來放名字
 
 
@@ -156,6 +157,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         boolean canEdit = false;
         boolean isMine;
         int visibility;
+        String moodType = "";
 
         int heartCount = 0;
         int smileCount = 0;
@@ -863,46 +865,54 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         return markerDataMap.get(diaryId);
     }
 
+    private void scheduleMarkerRefresh() {
+        if (markerLayer == null) return;
+        markerLayer.setItems(buildMarkerItems());
+    }
+
+    private List<DiaryMarkerLayer.Item> buildMarkerItems() {
+        List<DiaryMarkerLayer.Item> list = new ArrayList<>();
+        for (DiaryEntry entry : markerDataMap.values()) {
+            if (entry.id == null || entry.location == null) continue;
+            DiaryMarkerLayer.Item item = new DiaryMarkerLayer.Item();
+            item.id = entry.id;
+            item.lat = entry.location.latitude;
+            item.lng = entry.location.longitude;
+            item.title = entry.title;
+            item.moodLabel = entry.mood;
+            item.time = entry.time;
+            item.moodColor = InsightFormat.moodColor(entry.moodType);
+            list.add(item);
+        }
+        return list;
+    }
+
     private void removeDiaryMarker(String diaryId) {
         if (diaryId == null || diaryId.isEmpty()) return;
-        Marker marker = diaryMarkerMap.remove(diaryId);
-        if (marker != null) {
-            markerDiaryIdMap.remove(marker.getId());
-            marker.remove();
-        }
         markerDataMap.remove(diaryId);
+        scheduleMarkerRefresh();
         if (diaryId.equals(selectedDiaryId)) {
             selectedDiaryId = null;
+            if (markerLayer != null) markerLayer.setSelected(null);
             if (previewController != null) previewController.hide(getResources().getInteger(R.integer.motion_fast));
         }
     }
 
     private void addOrUpdateDiaryMarker(DiaryEntry entry) {
-        if (entry == null || entry.id == null || entry.id.isEmpty() || mMap == null) return;
-        removeDiaryMarker(entry.id);
-        Marker marker = mMap.addMarker(new MarkerOptions()
-                .position(entry.location)
-                .title(entry.title == null || entry.title.isEmpty() ? entry.mood : entry.title)
-                .snippet(entry.mood)
-                .anchor(0.5f, 0.5f)
-                .icon(markerManager.iconFor(entry.mood, entry.isMine, entry.id.equals(selectedDiaryId))));
-        if (marker != null) {
-            markerDataMap.put(entry.id, entry);
-            diaryMarkerMap.put(entry.id, marker);
-            markerDiaryIdMap.put(marker.getId(), entry.id);
-        }
+        if (entry == null || entry.id == null || entry.id.isEmpty()) return;
+        markerDataMap.put(entry.id, entry);
+        scheduleMarkerRefresh();
     }
 
     private void selectDiaryMarker(String diaryId, boolean animateCamera) {
         if (diaryId == null || diaryId.isEmpty()) return;
-        String previousId = selectedDiaryId;
         selectedDiaryId = diaryId;
-        refreshMarkerIcon(previousId);
-        refreshMarkerIcon(selectedDiaryId);
+        if (markerLayer != null) {
+            markerLayer.closeExpansion();
+            markerLayer.setSelected(diaryId);
+        }
 
-        Marker marker = diaryMarkerMap.get(diaryId);
         DiaryEntry entry = markerDataMap.get(diaryId);
-        if (marker != null) lastSelectedMarker = marker;
         if (entry == null) return;
 
         if (previewController != null) previewController.show(buildPreviewData(entry), getResources().getInteger(R.integer.motion_normal));
@@ -912,10 +922,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     private void clearSelectedDiaryMarker() {
-        String previousId = selectedDiaryId;
         selectedDiaryId = null;
         lastSelectedMarker = null;
-        refreshMarkerIcon(previousId);
+        if (markerLayer != null) markerLayer.setSelected(null);
         if (previewController != null) previewController.hide(getResources().getInteger(R.integer.motion_normal));
         if (mMap != null) mMap.setPadding(0, 0, 0, 0);
     }
@@ -976,6 +985,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 uiDiary.isMine,
                 uiDiary.visibility
         );
+        entry.moodType = uiDiary.moodType;
         entry.id = uiDiary.id;
         entry.authorName = uiDiary.authorName;
         entry.authorAvatar = uiDiary.authorAvatar;
@@ -1065,6 +1075,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     protected void onDestroy() {
         destroyed = true;
+        if (markerLayer != null) markerLayer.destroy();
         if (mapStatusChip != null && mapStatusDismissRunnable != null) {
             mapStatusChip.removeCallbacks(mapStatusDismissRunnable);
             mapStatusDismissRunnable = null;
@@ -1087,22 +1098,30 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
         mMap.getUiSettings().setCompassEnabled(true);
         mMap.getUiSettings().setMapToolbarEnabled(false);
+
+        markerLayer = new DiaryMarkerLayer(this, mMap, findViewById(R.id.map_fragment),
+                diaryId -> selectDiaryMarker(diaryId, true));
+        markerLayer.setObstacleViews(
+                findViewById(R.id.map_identity_chip),
+                findViewById(R.id.btn_open_drawer),
+                findViewById(R.id.map_mode_chip),
+                findViewById(R.id.map_control_rail),
+                findViewById(R.id.map_bottom_nav),
+                findViewById(R.id.diary_preview_card));
+
         enableMyLocationLayer();
 
         // 🎯 呼叫下載接收雲端資料
         loadDiariesFromServer();
 
-        mMap.setOnMarkerClickListener(marker -> {
-            lastSelectedMarker = marker;
-            DiaryEntry entry = getCurrentDiaryEntry();
-            if (entry != null) {
-                selectDiaryMarker(entry.id, true);
-            }
-            return true;
-        });
+        mMap.setOnMarkerClickListener(marker -> markerLayer.onMarkerClick(marker));
 
-        mMap.setOnMapClickListener(latLng -> clearSelectedDiaryMarker());
+        mMap.setOnMapClickListener(latLng -> {
+            markerLayer.closeExpansion();
+            clearSelectedDiaryMarker();
+        });
         mMap.setOnCameraMoveStartedListener(reason -> {
+            markerLayer.onCameraMoveStarted(reason);
             if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
                 setLocationButtonState("normal");
             }
@@ -1248,11 +1267,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 if (mMap != null) {
                     mMap.clear();
                 }
+                if (markerLayer != null) markerLayer.reset();
                 markerDataMap.clear();
                 diaryMarkerMap.clear();
                 markerDiaryIdMap.clear();
                 selectedDiaryId = null;
                 lastSelectedMarker = null;
+                if (markerLayer != null) markerLayer.setSelected(null);
                 if (previewController != null) previewController.hide(getResources().getInteger(R.integer.motion_fast));
                 if (mMap != null) mMap.setPadding(0, 0, 0, 0);
 

@@ -808,14 +808,27 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="記憶對話"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Memory Chat"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="探索你留下的生活片段"
+                        android:textColor="@color/hint_text"
+                        android:textSize="12sp" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/btn_chat_new"
@@ -825,23 +838,21 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:padding="8dp"
-                    android:text="新對話"
+                    android:text="＋ 新對話"
                     android:textColor="@color/cyan_primary"
                     android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <TextView
+            <View
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="只能回答和你自己日記有關的問題；每天的使用次數與洞察分析共用。"
-                android:textColor="@color/hint_text"
-                android:textSize="11sp" />
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:background="#1FFFFFFF" />
 
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="8dp"
                 android:layout_weight="1">
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -849,19 +860,62 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
-                    android:paddingBottom="8dp" />
+                    android:paddingBottom="8dp"
+                    android:paddingTop="8dp" />
+
+                <ScrollView
+                    android:id="@+id/layout_chat_intro"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="4dp"
+                        android:paddingVertical="24dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="和你的記憶聊聊。"
+                            android:textColor="@color/white"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:lineSpacingExtra="4dp"
+                            android:text="從你的日記、情緒與足跡中，找回值得重新回顧的時刻。"
+                            android:textColor="@color/hint_text"
+                            android:textSize="14sp" />
+
+                        <LinearLayout
+                            android:id="@+id/container_chat_suggestions"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </ScrollView>
 
                 <TextView
-                    android:id="@+id/tv_chat_empty"
-                    android:layout_width="match_parent"
+                    android:id="@+id/btn_chat_latest"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:gravity="center"
-                    android:lineSpacingExtra="6dp"
-                    android:padding="24dp"
-                    android:text="問問你的記憶吧\n\n例如：\n「我最近一個月心情怎麼樣？」\n「在臺中市留下過哪些記憶？」"
-                    android:textColor="@color/hint_text"
-                    android:textSize="13sp" />
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="8dp"
+                    android:background="@drawable/bg_edittext_dark"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="8dp"
+                    android:text="↓ 查看最新回覆"
+                    android:textColor="@color/cyan_primary"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
             </FrameLayout>
 
             <LinearLayout
@@ -879,7 +933,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:background="@null"
-                    android:hint="輸入你想問的記憶問題..."
+                    android:hint="問問 Adrift，你留下過哪些記憶……"
                     android:inputType="textMultiLine|textCapSentences"
                     android:maxLength="1000"
                     android:maxLines="4"
@@ -896,6 +950,15 @@
                     android:layout_height="wrap_content"
                     android:text="送出" />
             </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingExtra="2dp"
+                android:text="僅回顧你的日記、情緒與足跡。相關片段交由 Gemini 整理，請對照引用。"
+                android:textColor="@color/hint_text"
+                android:textSize="11sp" />
         </LinearLayout>
     </FrameLayout>
 </LinearLayout>
