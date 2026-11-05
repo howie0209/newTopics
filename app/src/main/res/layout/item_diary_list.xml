@@ -2,10 +2,17 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
     android:orientation="horizontal"
-    android:padding="16dp"
+    android:paddingStart="16dp"
+    android:paddingTop="13dp"
+    android:paddingEnd="15dp"
+    android:paddingBottom="12dp"
+    android:minHeight="86dp"
     android:gravity="center_vertical"
-    android:background="?attr/selectableItemBackground">
+    android:clickable="true"
+    android:focusable="true"
+    android:background="@drawable/bg_ad_memory_item">
 
     <LinearLayout
         android:layout_width="0dp"

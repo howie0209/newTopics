@@ -43,13 +43,15 @@ public class DiaryMarkerLayer {
     private static final float GEO_GROUP_METERS = 20f;
     private static final float SCREEN_GROUP_DP = 56f;
 
-    private static final int BRAND = 0xFF91D9D6;
-    private static final int SURFACE = 0xFF172E36;
-    private static final int SURFACE_TOP = 0xFF25414A;
-    private static final int TEXT = 0xFFF1FAF9;
-    private static final int MUTED = 0xFFB7CACA;
-    private static final int BORDER = 0xFF537B82;
-    private static final int POPUP = 0xFF193038;
+    // 標記配色：深色主題沿用原本的顏色，明亮主題對齊網頁版 diaryMarkerVisual.css 的 [data-theme="bright"]
+    private final int BRAND;
+    private final int SURFACE;
+    private final int SURFACE_TOP;
+    private final int TEXT;
+    private final int MUTED;
+    private final int BORDER;
+    private final int POPUP;
+    private final int SHADOW;
 
     private static final String SPARKLE_PATH =
             "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
@@ -117,6 +119,15 @@ public class DiaryMarkerLayer {
         this.mapView = mapView != null ? mapView : activity.getWindow().getDecorView();
         this.listener = listener;
         this.density = activity.getResources().getDisplayMetrics().density;
+        boolean night = com.example.topics.data.local.ThemeManager.isNight(activity);
+        BRAND = night ? 0xFF91D9D6 : 0xFF087B82;
+        SURFACE = night ? 0xFF172E36 : 0xFFEAF6F8;
+        SURFACE_TOP = night ? 0xFF25414A : 0xFFFFFFFF;
+        TEXT = night ? 0xFFF1FAF9 : 0xFF173C43;
+        MUTED = night ? 0xFFB7CACA : 0xFF49676D;
+        BORDER = night ? 0xFF537B82 : 0xFF39858D;
+        POPUP = night ? 0xFF193038 : 0xFFFFFFFF;
+        SHADOW = night ? 0x4D000000 : 0x2E1D454D;
         this.icons = new IconFactory();
         map.setOnCameraIdleListener(this::requestRefresh);
     }
@@ -383,7 +394,7 @@ public class DiaryMarkerLayer {
 
             connectors.add(map.addPolyline(new PolylineOptions()
                     .add(cluster.center, position)
-                    .color(0x6691D9D6)
+                    .color((BRAND & 0x00FFFFFF) | 0x66000000)
                     .width(density)
                     .zIndex(2f)));
 
@@ -597,7 +608,7 @@ public class DiaryMarkerLayer {
             paint.setAntiAlias(true);
             paint.setStyle(Paint.Style.FILL);
             paint.setShader(new LinearGradient(left, top, left + core, top + core, SURFACE_TOP, SURFACE, Shader.TileMode.CLAMP));
-            paint.setShadowLayer(3.5f * density, 0f, 3f * density, 0x4D000000);
+            paint.setShadowLayer(3.5f * density, 0f, 3f * density, SHADOW);
             canvas.drawPath(shape, paint);
 
             // 上半部的玻璃反光與底下的心情色條

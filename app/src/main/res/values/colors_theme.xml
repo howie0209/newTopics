@@ -44,4 +44,9 @@
     <color name="ad_drawer_bg">#F7FBFDFF</color>
     <color name="ad_verify_card">#FFFFFF</color>
     <color name="ad_chart_grid">#260E7490</color>
+    <color name="ad_memory_bg">#EBFFFFFF</color>
+    <color name="ad_memory_border">#2E008FC7</color>
+    <color name="ad_memory_bg_pressed">#171769B2</color>
+    <color name="ad_memory_border_pressed">#4D008FC7</color>
+    <color name="ad_fab_icon">#1769B2</color>
 </resources>

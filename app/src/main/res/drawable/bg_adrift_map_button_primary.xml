@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 明亮主題的新增日記按鈕：白底細框，跟定位按鈕同一套；深色主題在 drawable-night/ -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_pressed="true">
         <shape android:shape="oval">
-            <solid android:color="@color/adrift_mint" />
+            <solid android:color="@color/ad_chip_bg" />
             <stroke
                 android:width="1dp"
-                android:color="#55FFFFFF" />
+                android:color="@color/adrift_border_focus" />
         </shape>
     </item>
     <item>
         <shape android:shape="oval">
-            <gradient
-                android:angle="45"
-                android:startColor="@color/adrift_ocean"
-                android:endColor="@color/adrift_accent" />
+            <solid android:color="@color/ad_map_chip_bg" />
             <stroke
                 android:width="1dp"
-                android:color="#44FFFFFF" />
+                android:color="@color/adrift_border" />
         </shape>
     </item>
 </selector>

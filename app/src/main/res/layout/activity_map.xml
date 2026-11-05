@@ -205,7 +205,7 @@
                     android:background="@drawable/bg_adrift_map_button_primary"
                     android:contentDescription="新增日記"
                     android:src="@android:drawable/ic_menu_edit"
-                    app:tint="@color/adrift_text_primary" />
+                    app:tint="@color/ad_fab_icon" />
             </LinearLayout>
 
             <LinearLayout

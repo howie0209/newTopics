@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 側欄日記清單的一格，對齊網頁版 .memory-item.compact：圓角 14、細框、半透明底 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/ad_memory_bg_pressed" />
+            <stroke android:width="1dp" android:color="@color/ad_memory_border_pressed" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/ad_memory_bg" />
+            <stroke android:width="1dp" android:color="@color/ad_memory_border" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+</selector>
