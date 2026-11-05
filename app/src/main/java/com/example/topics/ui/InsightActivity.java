@@ -152,7 +152,7 @@ public class InsightActivity extends AppCompatActivity {
     private void updateTabStyle(TextView tab, boolean selected) {
         if (selected) {
             tab.setBackgroundResource(R.drawable.bg_login_card);
-            tab.setTextColor(getResources().getColor(R.color.white));
+            tab.setTextColor(getColor(R.color.ad_text));
         } else {
             tab.setBackground(null);
             tab.setTextColor(getResources().getColor(R.color.hint_text));
@@ -194,7 +194,7 @@ public class InsightActivity extends AppCompatActivity {
     private void styleRange(TextView view, boolean selected) {
         if (selected) {
             view.setBackgroundResource(R.drawable.bg_login_card);
-            view.setTextColor(getResources().getColor(R.color.white));
+            view.setTextColor(getColor(R.color.ad_text));
         } else {
             view.setBackground(null);
             view.setTextColor(getResources().getColor(R.color.hint_text));

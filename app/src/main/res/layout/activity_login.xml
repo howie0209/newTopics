@@ -14,7 +14,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#B802050D" />
+        android:background="@color/ad_auth_overlay" />
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
@@ -32,83 +32,192 @@
             android:orientation="vertical"
             android:padding="@dimen/space_lg">
 
+            <!-- 對齊網頁版 AuthPanel：先輸入 Email，系統判斷要登入或註冊，再一步一步完成 -->
             <TextView
                 style="@style/Text.Adrift.Metadata"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:text="MAP DIARY SYSTEM"
+                android:text="ADRIFT 漂流足跡"
                 android:textColor="@color/adrift_accent" />
 
             <TextView
-                style="@style/Text.Adrift.Display"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_xs"
-                android:gravity="center"
-                android:text="Adrift" />
+                android:layout_marginTop="4dp"
+                android:text="把生活，留在發生的地方。"
+                android:textColor="@color/ad_text_secondary"
+                android:textSize="13sp" />
 
             <TextView
-                style="@style/Text.Adrift.BodySecondary"
+                android:id="@+id/btn_auth_back"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginTop="@dimen/space_sm"
+                android:background="@drawable/bg_ad_pill"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="‹ 上一步"
+                android:textColor="@color/ad_text"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tv_auth_title"
+                style="@style/Text.Adrift.Title1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_sm"
-                android:layout_marginBottom="@dimen/space_lg"
-                android:gravity="center"
-                android:text="回到你的漂流足跡" />
+                android:text="歡迎來到 Adrift" />
 
             <TextView
-                style="@style/Text.Adrift.Caption"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="電子郵件"
-                android:textColor="@color/adrift_accent" />
-
-            <EditText
-                android:id="@+id/et_login_email"
-                style="@style/Widget.Adrift.Input"
+                android:id="@+id/tv_auth_subtitle"
+                style="@style/Text.Adrift.BodySecondary"
                 android:layout_width="match_parent"
-                android:layout_marginTop="@dimen/space_xs"
-                android:layout_marginBottom="@dimen/space_md"
-                android:hint="輸入電子郵件"
-                android:imeOptions="actionNext"
-                android:inputType="textEmailAddress" />
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="輸入 Email，繼續你的漂流足跡。" />
 
             <TextView
-                style="@style/Text.Adrift.Caption"
+                android:id="@+id/tv_auth_email_chip"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="密碼"
-                android:textColor="@color/adrift_accent" />
+                android:layout_height="32dp"
+                android:layout_marginTop="@dimen/space_sm"
+                android:background="@drawable/bg_ad_pill"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:paddingHorizontal="12dp"
+                android:textColor="@color/ad_text"
+                android:textSize="12sp"
+                android:visibility="gone" />
 
-            <EditText
-                android:id="@+id/et_login_password"
-                style="@style/Widget.Adrift.Input"
+            <LinearLayout
+                android:id="@+id/layout_auth_email"
                 android:layout_width="match_parent"
-                android:layout_marginTop="@dimen/space_xs"
-                android:layout_marginBottom="@dimen/space_lg"
-                android:hint="輸入密碼"
-                android:imeOptions="actionDone"
-                android:inputType="textPassword" />
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/lbl_login_email"
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="Email"
+                    android:textColor="@color/adrift_accent" />
+                <EditText
+                    android:id="@+id/et_login_email"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:hint="you@example.com"
+                    android:imeOptions="actionNext"
+                    android:inputType="textEmailAddress" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_auth_profile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+                <TextView
+                    android:id="@+id/lbl_register_name"
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="使用者名稱"
+                    android:textColor="@color/adrift_accent" />
+                <EditText
+                    android:id="@+id/et_register_name"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:hint="你的顯示名稱"
+                    android:imeOptions="actionNext"
+                    android:inputType="textPersonName"
+                    android:maxLength="30" />
+                <TextView
+                    android:id="@+id/lbl_register_code"
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="使用者 ID"
+                    android:textColor="@color/adrift_accent" />
+                <EditText
+                    android:id="@+id/et_register_code"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:hint="4 到 20 個英文、數字、底線或減號"
+                    android:imeOptions="actionNext"
+                    android:inputType="text"
+                    android:maxLength="20" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_auth_password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+                <TextView
+                    android:id="@+id/lbl_login_password"
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="密碼"
+                    android:textColor="@color/adrift_accent" />
+                <EditText
+                    android:id="@+id/et_login_password"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:hint="輸入密碼"
+                    android:imeOptions="actionDone"
+                    android:inputType="textPassword" />
+                <LinearLayout
+                    android:id="@+id/layout_auth_confirm"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+                <TextView
+                    android:id="@+id/lbl_register_confirm"
+                    style="@style/Text.Adrift.Caption"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_sm"
+                    android:text="確認密碼"
+                    android:textColor="@color/adrift_accent" />
+                <EditText
+                    android:id="@+id/et_register_confirm"
+                    style="@style/Widget.Adrift.Input"
+                    android:layout_width="match_parent"
+                    android:layout_marginTop="@dimen/space_xs"
+                    android:hint="再次輸入密碼"
+                    android:imeOptions="actionDone"
+                    android:inputType="textPassword" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_auth_error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_sm"
+                android:textColor="@color/ad_danger"
+                android:textSize="12sp"
+                android:visibility="gone" />
 
             <Button
                 android:id="@+id/btn_login_submit"
                 style="@style/Widget.Adrift.Button.Primary"
                 android:layout_width="match_parent"
-                android:text="登入" />
-
-            <TextView
-                android:id="@+id/tv_go_register"
-                style="@style/Text.Adrift.Button"
-                android:layout_width="wrap_content"
-                android:layout_height="@dimen/touch_target"
-                android:layout_gravity="center"
                 android:layout_marginTop="@dimen/space_md"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:text="還沒有帳號？註冊"
-                android:textColor="@color/adrift_accent" />
+                android:text="下一步" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 </FrameLayout>

@@ -23,8 +23,10 @@ public class AdriftSystemUi {
 
         WindowInsetsControllerCompat controller =
                 new WindowInsetsControllerCompat(window, window.getDecorView());
-        controller.setAppearanceLightStatusBars(false);
-        controller.setAppearanceLightNavigationBars(false);
+        // 明亮主題用深色狀態列圖示，深色主題用淺色圖示
+        boolean night = com.example.topics.data.local.ThemeManager.isNight(activity);
+        controller.setAppearanceLightStatusBars(!night);
+        controller.setAppearanceLightNavigationBars(!night);
 
         View content = window.findViewById(android.R.id.content);
         ViewCompat.setOnApplyWindowInsetsListener(content, (view, insets) -> {

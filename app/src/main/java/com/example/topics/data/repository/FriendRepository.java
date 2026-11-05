@@ -3,6 +3,9 @@ package com.example.topics.data.repository;
 import android.content.Context;
 import com.example.topics.ApiService;
 import com.example.topics.FriendRecord;
+import com.example.topics.data.model.MemoryPageData;
+import com.example.topics.data.model.PersonDto;
+import com.example.topics.data.model.SharedPlacesData;
 import com.example.topics.data.model.ApiResponse;
 import com.example.topics.data.model.EmptyResponse;
 import com.example.topics.data.model.FriendDto;
@@ -80,6 +83,62 @@ public class FriendRepository extends BaseRepository {
 
     public void deleteFriend(String friendId, RepositoryCallback<EmptyResponse> callback) {
         api.deleteFriend(friendId).enqueue(emptyCallback(callback));
+    }
+
+    public void searchPeople(String query, RepositoryCallback<List<PersonDto>> callback) {
+        api.searchPeople(query).enqueue(new Callback<ApiResponse<List<PersonDto>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<PersonDto>>> call, Response<ApiResponse<List<PersonDto>>> response) {
+                dispatchIfSuccessful(response, callback);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<PersonDto>>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
+    }
+
+    public void getRecommendations(int limit, RepositoryCallback<List<PersonDto>> callback) {
+        api.getFriendRecommendations(limit).enqueue(new Callback<ApiResponse<List<PersonDto>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<PersonDto>>> call, Response<ApiResponse<List<PersonDto>>> response) {
+                dispatchIfSuccessful(response, callback);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<PersonDto>>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
+    }
+
+    public void getFriendMemories(String friendId, String cursor, RepositoryCallback<MemoryPageData> callback) {
+        api.getFriendMemories(friendId, cursor).enqueue(new Callback<ApiResponse<MemoryPageData>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<MemoryPageData>> call, Response<ApiResponse<MemoryPageData>> response) {
+                dispatchIfSuccessful(response, callback);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<MemoryPageData>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
+    }
+
+    public void getSharedPlaces(String friendId, RepositoryCallback<SharedPlacesData> callback) {
+        api.getSharedPlaces(friendId).enqueue(new Callback<ApiResponse<SharedPlacesData>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<SharedPlacesData>> call, Response<ApiResponse<SharedPlacesData>> response) {
+                dispatchIfSuccessful(response, callback);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<SharedPlacesData>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
     }
 
     public void getFriendProfile(String friendId, RepositoryCallback<FriendProfileDto> callback) {

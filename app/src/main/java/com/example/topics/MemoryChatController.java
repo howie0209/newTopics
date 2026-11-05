@@ -369,7 +369,7 @@ public class MemoryChatController {
             } else {
                 out.append(token.substring(1, token.length() - 1));
                 out.setSpan(new TypefaceSpan("monospace"), start, out.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                out.setSpan(new BackgroundColorSpan(0x33FFFFFF), start, out.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                out.setSpan(new BackgroundColorSpan(0x3394C2D6), start, out.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             last = matcher.end();
         }

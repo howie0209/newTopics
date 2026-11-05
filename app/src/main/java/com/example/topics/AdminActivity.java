@@ -147,7 +147,7 @@ public class AdminActivity extends AppCompatActivity {
     private void updateTabStyle(TextView tab, boolean selected) {
         if (selected) {
             tab.setBackgroundResource(R.drawable.bg_login_card);
-            tab.setTextColor(getResources().getColor(R.color.white));
+            tab.setTextColor(getColor(R.color.ad_text));
         } else {
             tab.setBackground(null);
             tab.setTextColor(getResources().getColor(R.color.hint_text));
@@ -527,7 +527,8 @@ public class AdminActivity extends AppCompatActivity {
 
     private String formatDate(String value) {
         if (value == null || value.length() < 10) return "-";
-        return value.substring(0, 10);
+        String formatted = DiaryTime.format(value);
+        return formatted.isEmpty() ? value.substring(0, 10) : formatted;
     }
 
     private boolean isActive() {

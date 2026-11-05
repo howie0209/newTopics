@@ -11,6 +11,9 @@ public class FriendProfileDto {
     public String avatar;
     public String createdAt;
     public DiaryStatsDto diaryStats;
+    public String friendshipStatus;
+    public String requestId;
+    public boolean canViewSharedPlaces;
 
     public String getId() {
         if (id != null && !id.isEmpty()) return id;

@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:background="#1E1E1E"
+    android:background="@color/ad_card_solid"
     android:paddingHorizontal="14dp"
     android:paddingVertical="12dp"
     android:layout_marginHorizontal="6dp"
@@ -23,7 +23,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="使用者名稱"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/ad_text"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -32,7 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="\@username · 狀態提示"
-            android:textColor="#AAAAAA"
+            android:textColor="@color/ad_text_dim"
             android:textSize="11sp"
             android:layout_marginTop="3dp" />
     </LinearLayout>
@@ -53,8 +53,8 @@
             android:paddingVertical="0dp"
             android:text="動作一"
             android:textSize="11sp"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#2D2D2D"
+            android:textColor="@color/ad_text"
+            android:backgroundTint="@color/ad_chip_tint"
             android:layout_marginEnd="6dp" />
 
         <Button
@@ -67,7 +67,7 @@
             android:paddingVertical="0dp"
             android:text="動作二"
             android:textSize="11sp"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/ad_text"
             android:backgroundTint="#CF6679"
             android:visibility="gone" />
     </LinearLayout>

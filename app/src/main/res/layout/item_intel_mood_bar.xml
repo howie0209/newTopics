@@ -19,7 +19,7 @@
         android:layout_width="56dp"
         android:layout_height="wrap_content"
         android:singleLine="true"
-        android:textColor="@color/white"
+        android:textColor="@color/ad_text"
         android:textSize="13sp" />
 
     <LinearLayout
@@ -27,7 +27,7 @@
         android:layout_height="8dp"
         android:layout_marginHorizontal="8dp"
         android:layout_weight="1"
-        android:background="#33FFFFFF"
+        android:background="@color/ad_chip_tint"
         android:orientation="horizontal"
         android:weightSum="100">
 

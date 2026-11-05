@@ -6,6 +6,13 @@ import com.example.topics.data.model.AuthResponse;
 import com.example.topics.data.model.DiaryDetailData;
 import com.example.topics.data.model.DiaryDto;
 import com.example.topics.data.model.DiaryListData;
+import com.example.topics.data.model.FeedData;
+import com.example.topics.data.model.CheckEmailResponse;
+import com.example.topics.data.model.MemoryPageData;
+import com.example.topics.data.model.PersonDto;
+import com.example.topics.data.model.SharedPlacesData;
+import com.example.topics.data.model.NotificationListData;
+import com.example.topics.data.model.NotificationTargetData;
 import com.example.topics.data.model.EmptyResponse;
 import com.example.topics.data.model.FriendDto;
 import com.example.topics.data.model.FriendProfileDto;
@@ -44,6 +51,10 @@ import com.example.topics.data.model.LifeMapData;
 import com.example.topics.data.model.OverviewData;
 
 public interface ApiService {
+
+    // 先確認 Email 是否已註冊，決定走登入還是註冊（對齊網頁版 api.checkEmail）
+    @POST("auth/check-email")
+    Call<CheckEmailResponse> checkEmail(@Body Map<String, String> body);
 
     @POST("auth/login")
     Call<ApiResponse<AuthResponse>> login(@Body LoginRequest request);
@@ -95,6 +106,26 @@ public interface ApiService {
     @DELETE("diaries/{id}")
     Call<ApiResponse<EmptyResponse>> deleteDiary(@Path("id") String diaryId);
 
+    // 通知，對齊網頁版 api.getNotifications / readNotification / readAllNotifications / getNotificationTarget
+    @GET("notifications")
+    Call<ApiResponse<NotificationListData>> getNotifications(@Query("cursor") String cursor);
+
+    @PATCH("notifications/read-all")
+    Call<ApiResponse<EmptyResponse>> readAllNotifications();
+
+    @PATCH("notifications/{id}/read")
+    Call<ApiResponse<EmptyResponse>> readNotification(@Path("id") String id);
+
+    @GET("notifications/{id}/target")
+    Call<ApiResponse<NotificationTargetData>> getNotificationTarget(@Path("id") String id);
+
+    // 動態牆，對齊網頁版 api.getFeed
+    @GET("diaries/feed")
+    Call<ApiResponse<FeedData>> getFeed(@Query("filter") String filter, @Query("cursor") String cursor);
+
+    @GET("diaries/{id}")
+    Call<ApiResponse<DiaryDetailData>> getDiary(@Path("id") String diaryId);
+
     @GET("diaries/explore")
     Call<ApiResponse<List<DiaryDto>>> getExploreDiaries(
             @Query("lat") double lat,
@@ -134,6 +165,19 @@ public interface ApiService {
 
     @GET("friends/{friendId}/profile")
     Call<ApiResponse<FriendProfileDto>> getFriendProfile(@Path("friendId") String friendId);
+
+    // 好友：名稱／ID 搜尋、推薦、可見記憶、共同地點（對齊網頁版 FriendsPage / FriendProfile）
+    @GET("friends/search")
+    Call<ApiResponse<List<PersonDto>>> searchPeople(@Query("q") String query);
+
+    @GET("friends/recommendations")
+    Call<ApiResponse<List<PersonDto>>> getFriendRecommendations(@Query("limit") int limit);
+
+    @GET("friends/{friendId}/memories")
+    Call<ApiResponse<MemoryPageData>> getFriendMemories(@Path("friendId") String friendId, @Query("cursor") String cursor);
+
+    @GET("friends/{friendId}/places")
+    Call<ApiResponse<SharedPlacesData>> getSharedPlaces(@Path("friendId") String friendId);
 
     @GET("ai/life-map")
     Call<ApiResponse<LifeMapData>> getLifeMapInsight();

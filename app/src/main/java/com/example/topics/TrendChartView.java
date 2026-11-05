@@ -31,25 +31,25 @@ public class TrendChartView extends View {
         super(context, attrs);
         density = getResources().getDisplayMetrics().density;
 
-        gridPaint.setColor(0x33FFFFFF);
+        gridPaint.setColor(context.getColor(R.color.ad_chart_grid));
         gridPaint.setStyle(Paint.Style.STROKE);
         gridPaint.setStrokeWidth(density);
         gridPaint.setPathEffect(new DashPathEffect(new float[]{4 * density, 6 * density}, 0));
 
-        linePaint.setColor(0xFF50E3C2);
+        linePaint.setColor(context.getColor(R.color.cyan_primary));
         linePaint.setStyle(Paint.Style.STROKE);
         linePaint.setStrokeWidth(2 * density);
         linePaint.setStrokeCap(Paint.Cap.ROUND);
         linePaint.setStrokeJoin(Paint.Join.ROUND);
 
-        pointPaint.setColor(0xFF50E3C2);
+        pointPaint.setColor(context.getColor(R.color.cyan_primary));
         pointPaint.setStyle(Paint.Style.FILL);
 
         ringPaint.setColor(0xFF888888);
         ringPaint.setStyle(Paint.Style.STROKE);
         ringPaint.setStrokeWidth(1.5f * density);
 
-        valuePaint.setColor(0xFFFFFFFF);
+        valuePaint.setColor(context.getColor(R.color.ad_text));
         valuePaint.setTextAlign(Paint.Align.CENTER);
         valuePaint.setTextSize(sp(11));
 

@@ -106,4 +106,30 @@
         <item name="backgroundTint">@null</item>
         <item name="cornerRadius">@dimen/radius_md</item>
     </style>
+    <!-- 網頁版日記詳細的小膠囊標籤 -->
+    <style name="Widget.Adrift.Pill">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/bg_ad_pill</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textColor">@color/ad_text</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+    <!-- 好友頁上方的統計小卡 -->
+    <style name="Widget.Adrift.Stat">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@drawable/bg_ad_note</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:textColor">@color/ad_text</item>
+        <item name="android:textSize">12sp</item>
+    </style>
 </resources>

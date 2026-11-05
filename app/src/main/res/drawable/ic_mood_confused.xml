@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 疑惑：右上四分之一填滿的圓，對應網頁版的 ◔ -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M12,4a8,8 0 1,0 0.01,0z"
+        android:strokeWidth="1.8"
+        android:strokeColor="@color/ad_select_text"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M12,12L12,4A8,8 0 0,1 20,12Z"
+        android:fillColor="@color/ad_select_text" />
+</vector>

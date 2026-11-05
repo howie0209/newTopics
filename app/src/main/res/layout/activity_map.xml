@@ -100,6 +100,42 @@
                 android:src="@drawable/ic_more_vert"
                 app:tint="@color/adrift_text_primary" />
 
+            <!-- 通知鈴鐺，對齊網頁版右上角的 Bell 與未讀數 -->
+            <FrameLayout
+                android:id="@+id/btn_map_notifications"
+                android:layout_width="@dimen/touch_target"
+                android:layout_height="@dimen/touch_target"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="@dimen/space_md"
+                android:layout_marginEnd="72dp"
+                android:background="@drawable/bg_adrift_map_button"
+                android:clickable="true"
+                android:contentDescription="通知"
+                android:focusable="true">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="🔔"
+                    android:textSize="18sp" />
+                <TextView
+                    android:id="@+id/tv_map_notification_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="18dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginEnd="2dp"
+                    android:background="@drawable/bg_ad_badge"
+                    android:gravity="center"
+                    android:minWidth="18dp"
+                    android:paddingHorizontal="4dp"
+                    android:text="0"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
+
             <LinearLayout
                 android:id="@+id/map_mode_chip"
                 android:layout_width="wrap_content"
@@ -355,7 +391,7 @@
                         android:layout_marginStart="@dimen/space_sm"
                         android:layout_weight="1"
                         android:singleLine="true"
-                        android:text="共鳴 0" />
+                        android:text="❤️ 0 · 🤗 0 · 🌧 0" />
 
                     <TextView
                         style="@style/Text.Adrift.Button"
@@ -406,7 +442,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/bg_adrift_nav_item"
                     android:gravity="center"
-                    android:text="探索"
+                    android:text="動態"
                     android:textColor="@color/adrift_text_secondary"
                     android:textStyle="bold" />
 
@@ -427,20 +463,27 @@
             android:id="@+id/map_blur_overlay"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#AA000000"
+            android:background="@color/ad_overlay"
             android:clickable="true"
             android:focusable="true"
             android:visibility="gone" />
 
         <androidx.cardview.widget.CardView
             android:id="@+id/diary_bottom_sheet"
-            android:layout_width="320dp"
+            android:layout_width="340dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:layout_marginVertical="48dp"
             android:visibility="gone"
-            app:cardBackgroundColor="#1A222E"
+            app:cardBackgroundColor="@color/ad_card"
             app:cardCornerRadius="16dp"
             app:cardElevation="24dp">
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/diary_sheet_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fillViewport="false">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -455,12 +498,14 @@
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginEnd="40dp"
                         android:orientation="vertical">
                         <TextView
+                            android:id="@+id/tv_diary_eyebrow"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="NEW MEMORY"
-                            android:textColor="@color/cyan_primary"
+                            android:textColor="@color/ad_mint"
                             android:textSize="10sp"
                             android:letterSpacing="0.1" />
                         <TextView
@@ -468,7 +513,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="新增日記"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="18sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -479,15 +524,257 @@
                         android:layout_height="32dp"
                         android:layout_alignParentEnd="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="關閉"
                         android:src="@android:drawable/ic_menu_close_clear_cancel"
-                        app:tint="@color/hint_text" />
+                        app:tint="@color/ad_text_muted" />
                 </RelativeLayout>
+
+                <!-- ===== 查看模式：對齊網頁版 DiarySidePanel ===== -->
+                <LinearLayout
+                    android:id="@+id/layout_diary_detail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <FrameLayout
+                            android:layout_width="36dp"
+                            android:layout_height="36dp">
+                            <TextView
+                                android:id="@+id/tv_detail_avatar_letter"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:background="@drawable/bg_adrift_avatar"
+                                android:gravity="center"
+                                android:text="A"
+                                android:textColor="@color/ad_text"
+                                android:textStyle="bold" />
+                            <ImageView
+                                android:id="@+id/iv_detail_avatar"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:contentDescription="作者頭貼"
+                                android:scaleType="centerCrop"
+                                android:visibility="gone" />
+                        </FrameLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+                            <TextView
+                                android:id="@+id/tv_detail_author_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:maxLines="1"
+                                android:ellipsize="end"
+                                android:text="Unknown"
+                                android:textColor="@color/ad_text"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+                            <TextView
+                                android:id="@+id/tv_detail_author_code"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="\@unknown"
+                                android:textColor="@color/ad_text_muted"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/iv_diary_remote_image"
+                        android:layout_width="match_parent"
+                        android:layout_height="170dp"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_image_placeholder"
+                        android:contentDescription="日記照片"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:id="@+id/tv_detail_time"
+                            style="@style/Widget.Adrift.Pill"
+                            android:text="🕒 2026/01/01 00:00" />
+                        <TextView
+                            android:id="@+id/tv_detail_edited"
+                            style="@style/Widget.Adrift.Pill"
+                            android:layout_marginStart="6dp"
+                            android:text="已編輯"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_detail_place"
+                        style="@style/Widget.Adrift.Pill"
+                        android:layout_marginTop="6dp"
+                        android:text="📍 地點" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:id="@+id/tv_detail_mood"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="○ 平靜 / 3"
+                            android:textColor="@color/ad_text_secondary"
+                            android:textSize="13sp" />
+                        <TextView
+                            android:id="@+id/tv_detail_visibility"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:text="🌐 公開"
+                            android:textColor="@color/ad_text_secondary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layout_reactions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btn_react_understand"
+                            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:paddingHorizontal="2dp"
+                            android:text="❤️ 我懂 0"
+                            android:textAllCaps="false"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_react_hug"
+                            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginHorizontal="4dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:paddingHorizontal="2dp"
+                            android:text="🤗 抱抱 0"
+                            android:textAllCaps="false"
+                            android:textSize="11sp" />
+
+                        <Button
+                            android:id="@+id/btn_react_relate"
+                            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:minWidth="0dp"
+                            android:paddingHorizontal="2dp"
+                            android:text="🌧 有同感 0"
+                            android:textAllCaps="false"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tv_detail_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="（未命名日記）"
+                        android:textColor="@color/ad_text"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_detail_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:lineSpacingMultiplier="1.3"
+                        android:textColor="@color/ad_text_secondary"
+                        android:textIsSelectable="true"
+                        android:textSize="14sp" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_owner_actions"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tv_edit_availability"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_ad_note"
+                            android:padding="10dp"
+                            android:text="可編輯時間剩餘 1 小時"
+                            android:textColor="@color/ad_text"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+
+                        <Button
+                            android:id="@+id/btn_edit_diary"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="8dp"
+                            android:text="✏️ 編輯日記"
+                            android:textAllCaps="false"
+                            android:textColor="@color/ad_accent"
+                            android:visibility="gone"
+                            app:strokeColor="@color/ad_chip_border" />
+
+                        <Button
+                            android:id="@+id/btn_delete_diary"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="8dp"
+                            android:text="🗑 刪除日記"
+                            android:textAllCaps="false"
+                            android:textColor="@color/ad_danger"
+                            app:strokeColor="@color/ad_danger" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- ===== 新增／編輯模式：對齊網頁版 DiaryModal ===== -->
+                <LinearLayout
+                    android:id="@+id/layout_diary_form"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="標題"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ad_text"
                     android:textSize="12sp"
                     android:layout_marginTop="16dp"/>
                 <EditText
@@ -495,32 +782,70 @@
                     android:layout_width="match_parent"
                     android:layout_height="44dp"
                     android:layout_marginTop="4dp"
-                    android:background="@drawable/bg_edittext_dark"
-                    android:hint="輸入日記標題..."
+                    android:background="@drawable/bg_ad_input"
+                    android:hint="今天在海邊"
+                    android:inputType="text"
+                    android:maxLength="50"
                     android:paddingHorizontal="12dp"
-                    android:textColor="@color/white"
-                    android:textColorHint="@color/hint_text"
+                    android:textColor="@color/ad_text"
+                    android:textColorHint="@color/ad_text_faint"
                     android:textSize="14sp" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/tv_title_counter"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="文字"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
-                    android:layout_marginTop="12dp"/>
+                    android:layout_marginTop="2dp"
+                    android:gravity="end"
+                    android:text="0 / 50"
+                    android:textColor="@color/ad_text_faint"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="日記內容"
+                        android:textColor="@color/ad_text"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/btn_voice_input"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:background="@drawable/bg_ad_pill"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:text="🎙 語音輸入"
+                        android:textColor="@color/ad_text"
+                        android:textSize="12sp" />
+                </LinearLayout>
                 <EditText
                     android:id="@+id/diary_input"
                     android:layout_width="match_parent"
-                    android:layout_height="80dp"
-                    android:layout_marginTop="4dp"
+                    android:layout_height="110dp"
+                    android:layout_marginTop="6dp"
                     android:gravity="top"
                     android:hint="把此刻的潮汐留下來..."
-                    android:textColorHint="@color/hint_text"
-                    android:textColor="@color/white"
-                    android:background="@drawable/bg_edittext_dark"
+                    android:inputType="textMultiLine"
+                    android:textColorHint="@color/ad_text_faint"
+                    android:textColor="@color/ad_text"
+                    android:background="@drawable/bg_ad_input"
                     android:padding="12dp"
                     android:textSize="14sp" />
+                <TextView
+                    android:id="@+id/tv_speech_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/ad_text_muted"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -532,14 +857,14 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="心情"
-                        android:textColor="@color/white"
+                        android:textColor="@color/ad_text"
                         android:textSize="12sp"/>
                     <TextView
                         android:id="@+id/tv_intensity_label"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="強度 3"
-                        android:textColor="@color/white"
+                        android:text="心情強度：3 / 5"
+                        android:textColor="@color/ad_text"
                         android:textSize="12sp"/>
                 </LinearLayout>
 
@@ -554,16 +879,22 @@
                         android:layout_width="0dp"
                         android:layout_height="40dp"
                         android:layout_weight="1"
-                        android:background="@drawable/bg_edittext_dark" />
+                        android:background="@drawable/bg_adrift_select_trigger"
+                        android:spinnerMode="dropdown"
+                        android:popupBackground="@drawable/bg_adrift_select_menu"
+                        android:dropDownWidth="match_parent"
+                        android:dropDownVerticalOffset="48dp"
+                        android:popupElevation="12dp"
+                        android:dropDownSelector="@android:color/transparent" />
                     <SeekBar
                         android:id="@+id/sb_mood_intensity"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:max="5"
-                        android:progress="3"
-                        android:progressTint="@color/cyan_primary"
-                        android:thumbTint="@color/white" />
+                        android:max="4"
+                        android:progress="2"
+                        android:progressTint="@color/ad_mint"
+                        android:thumbTint="@color/ad_text" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -576,14 +907,15 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="可見性"
-                        android:textColor="@color/white"
+                        android:textColor="@color/ad_text"
                         android:textSize="12sp"/>
                     <TextView
+                        android:id="@+id/tv_image_label"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="圖片"
-                        android:textColor="@color/white"
+                        android:text="照片（選填）"
+                        android:textColor="@color/ad_text"
                         android:textSize="12sp"
                         android:layout_marginStart="8dp"/>
                 </LinearLayout>
@@ -598,23 +930,27 @@
                         android:layout_width="0dp"
                         android:layout_height="40dp"
                         android:layout_weight="1"
-                        android:background="@drawable/bg_edittext_dark" />
-                    <androidx.cardview.widget.CardView
+                        android:background="@drawable/bg_adrift_select_trigger"
+                        android:spinnerMode="dropdown"
+                        android:popupBackground="@drawable/bg_adrift_select_menu"
+                        android:dropDownWidth="match_parent"
+                        android:dropDownVerticalOffset="48dp"
+                        android:popupElevation="12dp"
+                        android:dropDownSelector="@android:color/transparent" />
+                    <TextView
                         android:id="@+id/card_image_picker"
                         android:layout_width="0dp"
                         android:layout_height="40dp"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
-                        app:cardBackgroundColor="#2D3748"
-                        app:cardCornerRadius="4dp">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:text="📷 選擇圖片"
-                            android:textColor="@color/white"
-                            android:textSize="12sp" />
-                    </androidx.cardview.widget.CardView>
+                        android:background="@drawable/bg_ad_input"
+                        android:ellipsize="middle"
+                        android:gravity="center"
+                        android:maxLines="1"
+                        android:paddingHorizontal="8dp"
+                        android:text="📷 拍照或選擇照片"
+                        android:textColor="@color/ad_text"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
@@ -624,83 +960,138 @@
                     android:layout_marginTop="8dp"
                     android:visibility="gone" />
 
-                <ImageView
-                    android:id="@+id/iv_diary_remote_image"
-                    android:layout_width="match_parent"
-                    android:layout_height="150dp"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/bg_image_placeholder"
-                    android:contentDescription="日記圖片"
-                    android:scaleType="centerCrop"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/tv_diary_meta"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/hint_text"
-                    android:textSize="11sp"
-                    android:visibility="gone" />
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_ad_note"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="你的足跡，由你決定誰能看見。"
+                        android:textColor="@color/ad_text"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="公開：其他使用者可以在地圖上看到這篇日記。好友：只有好友可以看到。私人：只有你自己可以看到。"
+                        android:textColor="@color/ad_text_secondary"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="不是每一段記憶都需要公開，你可以決定誰能看見你的足跡。"
+                        android:textColor="@color/ad_text_muted"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- 新增時：目前地點 -->
+                <LinearLayout
+                    android:id="@+id/layout_location_line"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/tv_location_line"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="📍 正在取得位置..."
+                        android:textColor="@color/ad_text_secondary"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/btn_refresh_location"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_ad_pill"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:text="↻ 重新定位"
+                        android:textColor="@color/ad_text"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- 編輯時：編輯規則 -->
+                <LinearLayout
+                    android:id="@+id/layout_edit_rules"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_ad_note"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:visibility="gone">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Adrift 希望保留日記當下的真實性，因此日記只能在發布後 1 小時內、且仍接近原本地點時修改。"
+                        android:textColor="@color/ad_text_secondary"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_edit_rules_place"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="@color/ad_text"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_edit_rules_time"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/ad_text"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_edit_rules_distance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/ad_text"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_edit_rules_warning"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/ad_warning"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+                    <TextView
+                        android:id="@+id/btn_edit_refresh_location"
+                        android:layout_width="wrap_content"
+                        android:layout_height="30dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_ad_pill"
+                        android:gravity="center"
+                        android:paddingHorizontal="12dp"
+                        android:text="↻ 更新位置"
+                        android:textColor="@color/ad_text"
+                        android:textSize="12sp" />
+                </LinearLayout>
 
                 <Button
                     android:id="@+id/btn_save"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:layout_marginTop="20dp"
-                    android:backgroundTint="@color/cyan_primary"
+                    android:layout_marginTop="16dp"
+                    android:backgroundTint="@color/ad_mint"
                     android:text="保存日記"
-                    android:textColor="@color/dark_bg"
+                    android:textColor="@color/ad_on_mint"
                     android:textStyle="bold"
                     app:cornerRadius="8dp" />
-
-                <Button
-                    android:id="@+id/btn_delete_diary"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="42dp"
-                    android:layout_marginTop="8dp"
-                    android:text="刪除日記"
-                    android:textColor="#FFAB6B"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/layout_reactions"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal"
-                    android:visibility="gone">
-
-                    <Button
-                        android:id="@+id/btn_react_understand"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_marginEnd="4dp"
-                        android:layout_weight="1"
-                        android:text="懂 0"
-                        android:textSize="11sp" />
-
-                    <Button
-                        android:id="@+id/btn_react_hug"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_marginHorizontal="4dp"
-                        android:layout_weight="1"
-                        android:text="抱 0"
-                        android:textSize="11sp" />
-
-                    <Button
-                        android:id="@+id/btn_react_relate"
-                        android:layout_width="0dp"
-                        android:layout_height="38dp"
-                        android:layout_marginStart="4dp"
-                        android:layout_weight="1"
-                        android:text="共鳴 0"
-                        android:textSize="11sp" />
                 </LinearLayout>
 
             </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
         </androidx.cardview.widget.CardView>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
@@ -709,7 +1100,7 @@
         android:layout_width="320dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
-        android:background="#F20B121E">
+        android:background="@color/ad_drawer_bg">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -735,7 +1126,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="地圖日記"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ad_text"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -747,7 +1138,7 @@
                     android:layout_centerInParent="true"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@android:drawable/ic_input_add"
-                    app:tint="@color/white" />
+                    app:tint="@color/ad_text" />
             </RelativeLayout>
 
             <LinearLayout
@@ -766,7 +1157,7 @@
                     android:background="@drawable/bg_login_card"
                     android:gravity="center"
                     android:text="日記地圖"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ad_text"
                     android:textStyle="bold" />
 
                 <TextView
@@ -807,7 +1198,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="20sp"
                             android:textStyle="bold" />
                         <TextView
@@ -831,7 +1222,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="20sp"
                             android:textStyle="bold" />
                         <TextView
@@ -850,15 +1241,35 @@
                     android:orientation="horizontal">
 
                     <Button
-                        android:id="@+id/filter_private"
+                        android:id="@+id/filter_all"
                         android:layout_width="0dp"
                         android:layout_height="38dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:text="🔒 私人"
-                        android:textSize="10sp"
-                        android:backgroundTint="#33FFFFFF"
-                        android:textColor="@color/white"
+                        android:text="全部"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/ad_chip_tint"
+                        android:textColor="@color/ad_text"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="0dp"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
+                    <Button
+                        android:id="@+id/filter_public"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="公開"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/ad_chip_tint"
+                        android:textColor="@color/ad_text"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="0dp"
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
                     <Button
@@ -867,29 +1278,38 @@
                         android:layout_height="38dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="4dp"
-                        android:text="👥 朋友"
-                        android:textSize="10sp"
-                        android:backgroundTint="#33FFFFFF"
-                        android:textColor="@color/white"
+                        android:text="朋友"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/ad_chip_tint"
+                        android:textColor="@color/ad_text"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="0dp"
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
                     <Button
-                        android:id="@+id/filter_public"
+                        android:id="@+id/filter_private"
                         android:layout_width="0dp"
                         android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:text="👁️ 公開"
-                        android:textSize="10sp"
-                        android:backgroundTint="#33FFFFFF"
-                        android:textColor="@color/white"
+                        android:text="私人"
+                        android:textSize="11sp"
+                        android:backgroundTint="@color/ad_chip_tint"
+                        android:textColor="@color/ad_text"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="0dp"
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
                 </LinearLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🕒 最近日記"
-                    android:textColor="@color/white"
+                    android:text="🕒 目前地圖日記"
+                    android:textColor="@color/ad_text"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginTop="24dp"/>
@@ -925,8 +1345,8 @@
                         android:layout_marginEnd="4dp"
                         android:text="1km"
                         android:textSize="11sp"
-                        android:backgroundTint="#33FFFFFF"
-                        android:textColor="@color/white"
+                        android:backgroundTint="@color/ad_chip_tint"
+                        android:textColor="@color/ad_text"
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
                     <Button
@@ -937,8 +1357,8 @@
                         android:layout_marginEnd="4dp"
                         android:text="5km"
                         android:textSize="11sp"
-                        android:backgroundTint="#33FFFFFF"
-                        android:textColor="@color/white"
+                        android:backgroundTint="@color/ad_chip_tint"
+                        android:textColor="@color/ad_text"
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
                     <Button
@@ -949,8 +1369,8 @@
                         android:layout_marginEnd="4dp"
                         android:text="10km"
                         android:textSize="11sp"
-                        android:backgroundTint="#33FFFFFF"
-                        android:textColor="@color/white"
+                        android:backgroundTint="@color/ad_chip_tint"
+                        android:textColor="@color/ad_text"
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
                     <Button
@@ -961,7 +1381,7 @@
                         android:text="50km"
                         android:textSize="11sp"
                         android:backgroundTint="@color/cyan_primary"
-                        android:textColor="@color/dark_bg"
+                        android:textColor="@color/ad_on_mint"
                         style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
                 </LinearLayout>
 
@@ -986,7 +1406,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="20sp"
                             android:textStyle="bold" />
                         <TextView
@@ -1010,7 +1430,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="20sp"
                             android:textStyle="bold" />
                         <TextView
@@ -1037,7 +1457,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="🕒 目前地圖日記"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ad_text"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:layout_marginTop="20dp"/>

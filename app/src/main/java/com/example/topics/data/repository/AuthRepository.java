@@ -5,6 +5,7 @@ import com.example.topics.ApiService;
 import com.example.topics.data.local.SessionManager;
 import com.example.topics.data.model.ApiResponse;
 import com.example.topics.data.model.AuthResponse;
+import com.example.topics.data.model.CheckEmailResponse;
 import com.example.topics.data.model.LoginRequest;
 import com.example.topics.data.model.RegisterRequest;
 import com.example.topics.data.model.UserDto;
@@ -22,6 +23,37 @@ public class AuthRepository extends BaseRepository {
         api = ApiClient.getService(context);
         sessionManager = SessionManager.getInstance(context);
         userRepository = new UserRepository(context);
+    }
+
+    // 回傳 true 代表這個 Email 已有帳號
+    public void checkEmail(String email, RepositoryCallback<Boolean> callback) {
+        java.util.Map<String, String> body = new java.util.HashMap<>();
+        body.put("email", email);
+        api.checkEmail(body).enqueue(new Callback<CheckEmailResponse>() {
+            @Override
+            public void onResponse(Call<CheckEmailResponse> call, Response<CheckEmailResponse> response) {
+                CheckEmailResponse result = response.body();
+                if (response.isSuccessful() && result != null && result.success) {
+                    callback.onSuccess(result.exists);
+                    return;
+                }
+                String message = result != null && result.message != null ? result.message : "";
+                if (message.isEmpty()) {
+                    try {
+                        if (response.errorBody() != null) {
+                            message = new org.json.JSONObject(response.errorBody().string()).optString("message", "");
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+                callback.onError(message.isEmpty() ? "無法確認 Email，請稍後再試" : message);
+            }
+
+            @Override
+            public void onFailure(Call<CheckEmailResponse> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
     }
 
     public void login(String email, String password, RepositoryCallback<UserDto> callback) {

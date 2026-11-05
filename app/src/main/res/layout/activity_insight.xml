@@ -25,7 +25,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Adrift Intelligence"
-                android:textColor="@color/white"
+                android:textColor="@color/ad_text"
                 android:textSize="20sp"
                 android:textStyle="bold" />
 
@@ -45,7 +45,7 @@
             android:background="@drawable/bg_adrift_map_button"
             android:contentDescription="返回地圖"
             android:src="@android:drawable/ic_menu_revert"
-            app:tint="@color/white" />
+            app:tint="@color/ad_text" />
     </LinearLayout>
 
     <!-- 分頁切換 -->
@@ -65,7 +65,7 @@
             android:background="@drawable/bg_login_card"
             android:gravity="center"
             android:text="智慧洞察"
-            android:textColor="@color/white"
+            android:textColor="@color/ad_text"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -118,7 +118,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="你的生活足跡"
-                        android:textColor="@color/white"
+                        android:textColor="@color/ad_text"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
@@ -129,7 +129,7 @@
                         android:background="@drawable/bg_adrift_map_button"
                         android:contentDescription="重新整理記錄統計"
                         android:src="@android:drawable/ic_popup_sync"
-                        app:tint="@color/white" />
+                        app:tint="@color/ad_text" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -159,7 +159,7 @@
                         android:background="@drawable/bg_login_card"
                         android:gravity="center"
                         android:text="最近 30 天"
-                        android:textColor="@color/white"
+                        android:textColor="@color/ad_text"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
@@ -189,7 +189,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:lineSpacingExtra="4dp"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ad_text"
                     android:textSize="14sp"
                     android:visibility="gone" />
 
@@ -259,7 +259,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="6dp"
-                                android:textColor="@color/white"
+                                android:textColor="@color/ad_text"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -299,7 +299,7 @@
                                     android:id="@+id/tv_metric_mood"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:textColor="@color/white"
+                                    android:textColor="@color/ad_text"
                                     android:textSize="18sp"
                                     android:textStyle="bold" />
                             </LinearLayout>
@@ -326,7 +326,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="6dp"
-                                android:textColor="@color/white"
+                                android:textColor="@color/ad_text"
                                 android:textSize="18sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -357,7 +357,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_weight="1"
                                     android:text="情緒分布"
-                                    android:textColor="@color/white"
+                                    android:textColor="@color/ad_text"
                                     android:textSize="15sp"
                                     android:textStyle="bold" />
 
@@ -395,7 +395,7 @@
                                     android:layout_height="wrap_content"
                                     android:layout_weight="1"
                                     android:text="心情強度趨勢"
-                                    android:textColor="@color/white"
+                                    android:textColor="@color/ad_text"
                                     android:textSize="15sp"
                                     android:textStyle="bold" />
 
@@ -448,7 +448,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="記憶經常落腳的地方"
-                                android:textColor="@color/white"
+                                android:textColor="@color/ad_text"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
 
@@ -494,7 +494,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="這段日子，還沒有留下記錄"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -531,7 +531,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="讓記憶串成線"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ad_text"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -550,7 +550,7 @@
                     android:layout_marginTop="12dp"
                     android:backgroundTint="@color/cyan_primary"
                     android:text="✨ 產生智慧洞察"
-                    android:textColor="@color/dark_bg"
+                    android:textColor="@color/ad_on_mint"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     app:cornerRadius="8dp" />
@@ -579,7 +579,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="讓記憶再累積一點"
-                        android:textColor="@color/white"
+                        android:textColor="@color/ad_text"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
@@ -630,7 +630,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:lineSpacingExtra="4dp"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="14sp" />
 
                         <TextView
@@ -655,7 +655,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="📈 情緒與生活"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -700,7 +700,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="📍 地點與心情"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -746,7 +746,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="💡 下一次，可以試著"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="15sp"
                             android:textStyle="bold" />
 
@@ -818,7 +818,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Memory Chat"
-                        android:textColor="@color/white"
+                        android:textColor="@color/ad_text"
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
@@ -848,7 +848,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginTop="8dp"
-                android:background="#1FFFFFFF" />
+                android:background="@color/ad_divider_soft" />
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -879,7 +879,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="和你的記憶聊聊。"
-                            android:textColor="@color/white"
+                            android:textColor="@color/ad_text"
                             android:textSize="22sp"
                             android:textStyle="bold" />
 
@@ -939,7 +939,7 @@
                     android:maxLines="4"
                     android:minHeight="40dp"
                     android:paddingHorizontal="8dp"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ad_text"
                     android:textColorHint="@color/hint_text"
                     android:textSize="14sp" />
 

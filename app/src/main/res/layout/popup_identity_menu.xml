@@ -28,7 +28,7 @@
                 android:background="@drawable/bg_adrift_avatar"
                 android:gravity="center"
                 android:text="A"
-                android:textColor="@color/white"
+                android:textColor="@color/ad_text"
                 android:textStyle="bold" />
 
             <LinearLayout
@@ -42,7 +42,7 @@
                     android:id="@+id/tv_popup_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/white"
+                    android:textColor="@color/ad_text"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
@@ -91,7 +91,7 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="12dp"
-            android:background="#33FFFFFF" />
+            android:background="@color/ad_chip_tint" />
 
         <!-- 我的帳號 -->
         <LinearLayout
@@ -115,7 +115,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:text="我的帳號"
-                android:textColor="@color/white"
+                android:textColor="@color/ad_text"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -142,7 +142,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:text="Admin Dashboard"
-                android:textColor="@color/white"
+                android:textColor="@color/ad_text"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -150,7 +150,7 @@
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="4dp"
-            android:background="#33FFFFFF" />
+            android:background="@color/ad_chip_tint" />
 
         <!-- 登出 -->
         <LinearLayout

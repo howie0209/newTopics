@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 動態牆的一張卡片，對齊網頁版 FeedPage 的 mf-card -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -8,142 +9,218 @@
     android:padding="@dimen/space_md">
 
     <LinearLayout
-        android:id="@+id/layout_explore_author"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackground"
-        android:clickable="true"
-        android:focusable="true"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <FrameLayout
-            android:layout_width="42dp"
-            android:layout_height="42dp">
-
-            <ImageView
-                android:id="@+id/iv_explore_author_avatar"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_adrift_avatar"
-                android:contentDescription="作者頭像"
-                android:scaleType="centerCrop"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/tv_explore_author_avatar"
-                style="@style/Text.Adrift.Headline"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_adrift_avatar"
-                android:gravity="center"
-                android:text="A" />
-        </FrameLayout>
-
         <LinearLayout
+            android:id="@+id/layout_explore_author"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/space_sm"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tv_explore_author"
-                style="@style/Text.Adrift.Caption"
-                android:layout_width="match_parent"
+            <FrameLayout
+                android:layout_width="38dp"
+                android:layout_height="38dp">
+                <ImageView
+                    android:id="@+id/iv_explore_author_avatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_adrift_avatar"
+                    android:contentDescription="作者頭像"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/tv_explore_author_avatar"
+                    style="@style/Text.Adrift.Headline"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_adrift_avatar"
+                    android:gravity="center"
+                    android:text="A" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:text="Adrift 使用者"
-                android:textColor="@color/adrift_text_primary"
-                android:textStyle="bold" />
+                android:layout_marginStart="@dimen/space_sm"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/tv_explore_author"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="使用者"
+                    android:textColor="@color/ad_text"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tv_explore_author_code"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:text="\@unknown"
+                    android:textColor="@color/ad_text_muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/tv_explore_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/ad_text_muted"
+                android:textSize="11sp" />
             <TextView
                 android:id="@+id/tv_explore_meta"
-                style="@style/Text.Adrift.Metadata"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:maxLines="1"
-                android:text="公開日記" />
+                android:layout_marginTop="2dp"
+                android:text="🌊 公開"
+                android:textColor="@color/ad_text_muted"
+                android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_explore_title"
-        style="@style/Text.Adrift.Title2"
+    <LinearLayout
+        android:id="@+id/layout_explore_story"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_md"
-        android:maxLines="2"
-        android:text="日記標題" />
-
-    <TextView
-        android:id="@+id/tv_explore_body"
-        style="@style/Text.Adrift.BodySecondary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_xs"
-        android:maxLines="4"
-        android:text="日記內容" />
+        android:layout_marginTop="10dp"
+        android:background="?attr/selectableItemBackground"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/tv_explore_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="未命名記憶"
+            android:textColor="@color/ad_text"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/tv_explore_body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:lineSpacingMultiplier="1.25"
+            android:maxLines="6"
+            android:textColor="@color/ad_text_secondary"
+            android:textSize="14sp" />
+    </LinearLayout>
 
     <ImageView
         android:id="@+id/iv_explore_image"
         android:layout_width="match_parent"
-        android:layout_height="188dp"
-        android:layout_marginTop="@dimen/space_md"
+        android:layout_height="190dp"
+        android:layout_marginTop="10dp"
         android:background="@drawable/bg_image_placeholder"
-        android:contentDescription="日記圖片"
+        android:contentDescription="日記照片"
         android:scaleType="centerCrop"
         android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/tv_explore_place"
-        style="@style/Text.Adrift.Metadata"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_sm"
-        android:maxLines="1"
-        android:text="位置" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_sm"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <TextView
+            android:id="@+id/tv_explore_place"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackground"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="📍 記憶座標"
+            android:textColor="@color/ad_accent"
+            android:textSize="12sp" />
+        <TextView
+            android:id="@+id/tv_explore_mood"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="生活片段 · –"
+            android:textColor="@color/ad_text_muted"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <Button
             android:id="@+id/btn_react_understand"
-            style="@style/Widget.Adrift.Button.Secondary"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
             android:layout_width="0dp"
             android:layout_height="38dp"
-            android:layout_marginEnd="@dimen/space_xs"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
-            android:contentDescription="送出理解反應"
-            android:minHeight="0dp"
-            android:text="懂 0"
-            android:textSize="12sp" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="2dp"
+            android:text="❤️ 我懂 0"
+            android:textAllCaps="false"
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/btn_react_hug"
-            style="@style/Widget.Adrift.Button.Secondary"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
             android:layout_width="0dp"
             android:layout_height="38dp"
-            android:layout_marginEnd="@dimen/space_xs"
+            android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
-            android:contentDescription="送出擁抱反應"
-            android:minHeight="0dp"
-            android:text="抱 0"
-            android:textSize="12sp" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="2dp"
+            android:text="🤗 抱抱 0"
+            android:textAllCaps="false"
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/btn_react_relate"
-            style="@style/Widget.Adrift.Button.Secondary"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
             android:layout_width="0dp"
             android:layout_height="38dp"
+            android:layout_marginStart="4dp"
             android:layout_weight="1"
-            android:contentDescription="送出共鳴反應"
-            android:minHeight="0dp"
-            android:text="共 0"
-            android:textSize="12sp" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="2dp"
+            android:text="🌧 有同感 0"
+            android:textAllCaps="false"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/btn_explore_open"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_ad_pill"
+            android:contentDescription="查看記憶"
+            android:gravity="center"
+            android:text="↗"
+            android:textColor="@color/ad_text"
+            android:textSize="16sp" />
     </LinearLayout>
 </LinearLayout>

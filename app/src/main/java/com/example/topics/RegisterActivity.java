@@ -77,8 +77,8 @@ public class RegisterActivity extends AppCompatActivity implements OnMapReadyCal
                     Toast.makeText(RegisterActivity.this, "使用者 ID 需為 4-20 位英數、底線或連字號", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                if (pwd.length() < 6) {
-                    Toast.makeText(RegisterActivity.this, "密碼至少需 6 個字元", Toast.LENGTH_SHORT).show();
+                if (pwd.length() < 8) {
+                    Toast.makeText(RegisterActivity.this, "密碼至少需要 8 個字元", Toast.LENGTH_SHORT).show();
                     return;
                 }
 

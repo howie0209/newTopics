@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 深色主題（對齊網頁版預設深色）；明亮在 values/colors_theme.xml -->
+<resources>
+    <color name="ad_bg">#02050D</color>
+    <color name="ad_card">#F2081220</color>
+    <color name="ad_card_solid">#0E1B2D</color>
+    <color name="ad_input_bg">#0A1723</color>
+    <color name="ad_input_border">#29B8E7FF</color>
+    <color name="ad_text">#EDF8FF</color>
+    <color name="ad_text_secondary">#A9C7D7</color>
+    <color name="ad_text_muted">#94C2D6</color>
+    <color name="ad_text_faint">#8FA8BC</color>
+    <color name="ad_text_dim">#99FFFFFF</color>
+    <color name="ad_accent">#83CAFF</color>
+    <color name="ad_mint">#8EFFDC</color>
+    <color name="ad_on_mint">#04131C</color>
+    <color name="ad_chip_bg">#1F72CFFF</color>
+    <color name="ad_chip_border">#338CDCFF</color>
+    <color name="ad_note_bg">#1472CFFF</color>
+    <color name="ad_danger">#FF6E89</color>
+    <color name="ad_warning">#F5B238</color>
+    <color name="ad_overlay">#AA000000</color>
+    <color name="ad_select_text">#DCEEF7</color>
+    <color name="ad_chip_tint">#33FFFFFF</color>
+    <color name="ad_divider_soft">#1FFFFFFF</color>
+    <color name="ad_reaction_bg">#1AFFFFFF</color>
+    <color name="ad_reaction_active">#3372CFFF</color>
+    <color name="ad_nav_bg">#C20E1B2D</color>
+    <color name="ad_control_bg">#660A1829</color>
+    <color name="ad_card_bg">#8A0E1B2D</color>
+    <color name="ad_floating_bg">#B30A1829</color>
+    <color name="ad_input_focus_bg">#8F0A1829</color>
+    <color name="ad_input_pressed_bg">#A60A1829</color>
+    <color name="ad_map_chip_bg">#C20A1829</color>
+    <color name="ad_preview_start">#E00A1421</color>
+    <color name="ad_preview_end">#CC102436</color>
+    <color name="ad_menu_bg">#F5071220</color>
+    <color name="ad_input_hover_bg">#101E2B</color>
+    <color name="ad_legacy_input_bg">#252F3F</color>
+    <color name="ad_placeholder">#2D3748</color>
+    <color name="ad_popup_bg">#E6182430</color>
+    <color name="ad_avatar_stroke">#66FFFFFF</color>
+    <color name="ad_auth_overlay">#B802050D</color>
+    <color name="ad_drawer_bg">#F20B121E</color>
+    <color name="ad_verify_card">#1A222E</color>
+    <color name="ad_chart_grid">#33FFFFFF</color>
+</resources>

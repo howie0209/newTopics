@@ -57,14 +57,48 @@ public class DiaryMapper {
         return "other";
     }
 
+    // 對齊網頁版 constants/app.js 的 MOOD_LABELS（去掉前面的符號）
     public static String moodLabel(String moodType) {
-        if ("joy".equals(moodType)) return "開心";
-        if ("sad".equals(moodType)) return "難過";
         if ("calm".equals(moodType)) return "平靜";
-        if ("wonder".equals(moodType)) return "興奮";
+        if ("joy".equals(moodType) || "happy".equals(moodType)) return "喜悅";
+        if ("sad".equals(moodType)) return "低落";
+        if ("wonder".equals(moodType) || "excited".equals(moodType)) return "驚奇";
         if ("anxious".equals(moodType)) return "焦慮";
+        if ("confused".equals(moodType)) return "疑惑";
         if ("nostalgic".equals(moodType)) return "懷舊";
         return "其他";
+    }
+
+    // 對齊網頁版 MOOD_LABELS（含符號），用在日記詳細與動態牆
+    public static String moodDisplayLabel(String moodType) {
+        if ("calm".equals(moodType)) return "○ 平靜";
+        if ("joy".equals(moodType) || "happy".equals(moodType)) return "✦ 喜悅";
+        if ("sad".equals(moodType)) return "● 低落";
+        if ("wonder".equals(moodType) || "excited".equals(moodType)) return "◇ 驚奇";
+        if ("anxious".equals(moodType)) return "△ 焦慮";
+        if ("confused".equals(moodType)) return "◔ 疑惑";
+        if ("nostalgic".equals(moodType)) return "● 懷舊";
+        return "• 其他";
+    }
+
+    // 地圖標記顏色，對齊網頁版 constants/moodStyles.js 的 MOOD_MARKER_STYLES
+    public static int moodMarkerColor(String moodType) {
+        if ("calm".equals(moodType)) return 0xFF70E6D2;
+        if ("joy".equals(moodType) || "happy".equals(moodType)) return 0xFFF4D278;
+        if ("sad".equals(moodType)) return 0xFF78AAE6;
+        if ("anxious".equals(moodType)) return 0xFFAA8CF0;
+        if ("confused".equals(moodType)) return 0xFF818CF8;
+        if ("angry".equals(moodType)) return 0xFFF08278;
+        if ("wonder".equals(moodType) || "excited".equals(moodType)) return 0xFFDCBCFF;
+        if ("nostalgic".equals(moodType)) return 0xFFC9AD84;
+        return 0xFF7DD3FC;
+    }
+
+    // 可見性文字，對齊網頁版 visibilityLabels
+    public static String visibilityLabel(String visibility) {
+        if ("friends".equals(visibility)) return "好友";
+        if ("public".equals(visibility)) return "公開";
+        return "私人";
     }
 
     public static String visibilityApiValue(int visibility) {

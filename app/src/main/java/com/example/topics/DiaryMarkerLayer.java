@@ -472,7 +472,7 @@ public class DiaryMarkerLayer {
             title.setTypeface(Typeface.DEFAULT_BOLD);
             row.addView(title);
 
-            String date = item.time != null && item.time.length() >= 10 ? item.time.substring(0, 10) : "";
+            String date = DiaryTime.format(item.time);
             TextView meta = new TextView(activity);
             meta.setText(text(item.moodLabel) + (date.isEmpty() ? "" : " · " + date));
             meta.setTextColor(MUTED);

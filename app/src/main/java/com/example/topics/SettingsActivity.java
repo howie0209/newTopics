@@ -72,8 +72,8 @@ public class SettingsActivity extends AppCompatActivity {
     private String originalEmail = "";
 
     // 分頁
-    private TextView tabProfile, tabSecurity, tabDanger;
-    private View contentProfile, contentSecurity, contentDanger;
+    private TextView tabProfile, tabSecurity, tabPrivacy, tabAppearance, tabDanger;
+    private View contentProfile, contentSecurity, contentPrivacy, contentAppearance, contentDanger;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,7 +108,9 @@ public class SettingsActivity extends AppCompatActivity {
         setupDirtyCheck();
         loadUserProfile();
         setupClickListeners();
-        selectSettingsTab("profile");
+        // 切換主題後畫面會重建，停留在「外觀」分頁
+        String initialTab = getIntent().getStringExtra("settings_tab");
+        selectSettingsTab(initialTab == null ? "profile" : initialTab);
     }
 
     private void initViews() {
@@ -132,6 +134,10 @@ public class SettingsActivity extends AppCompatActivity {
         tabProfile = findViewById(R.id.tab_settings_profile);
         tabSecurity = findViewById(R.id.tab_settings_security);
         tabDanger = findViewById(R.id.tab_settings_danger);
+        tabPrivacy = findViewById(R.id.tab_settings_privacy);
+        tabAppearance = findViewById(R.id.tab_settings_appearance);
+        contentPrivacy = findViewById(R.id.tab_content_privacy);
+        contentAppearance = findViewById(R.id.tab_content_appearance);
         contentProfile = findViewById(R.id.tab_content_profile);
         contentSecurity = findViewById(R.id.tab_content_security);
         contentDanger = findViewById(R.id.tab_content_danger);
@@ -192,6 +198,9 @@ public class SettingsActivity extends AppCompatActivity {
         if (tabProfile != null) tabProfile.setOnClickListener(v -> selectSettingsTab("profile"));
         if (tabSecurity != null) tabSecurity.setOnClickListener(v -> selectSettingsTab("security"));
         if (tabDanger != null) tabDanger.setOnClickListener(v -> selectSettingsTab("danger"));
+        if (tabPrivacy != null) tabPrivacy.setOnClickListener(v -> selectSettingsTab("privacy"));
+        if (tabAppearance != null) tabAppearance.setOnClickListener(v -> selectSettingsTab("appearance"));
+        setupThemeOptions();
 
         if (btnEditName != null) btnEditName.setOnClickListener(v -> togglePanel(layoutEditName));
         if (btnEditEmail != null) btnEditEmail.setOnClickListener(v -> togglePanel(layoutEditEmail));
@@ -256,8 +265,8 @@ public class SettingsActivity extends AppCompatActivity {
             if(!newPwd.equals(confirmPwd)) {
                 Toast.makeText(this, "兩次輸入的新密碼不一致！", Toast.LENGTH_SHORT).show(); return;
             }
-            if(newPwd.length() < 6) {
-                Toast.makeText(this, "新密碼至少需 6 個字元", Toast.LENGTH_SHORT).show(); return;
+            if(newPwd.length() < 8) {
+                Toast.makeText(this, "新密碼至少需要 8 個字元", Toast.LENGTH_SHORT).show(); return;
             }
 
             setSettingsBusy(btnSavePassword, true, "更新中", "更新密碼");
@@ -289,6 +298,12 @@ public class SettingsActivity extends AppCompatActivity {
         boolean isProfile = "profile".equals(tab);
         boolean isSecurity = "security".equals(tab);
         boolean isDanger = "danger".equals(tab);
+        boolean isPrivacy = "privacy".equals(tab);
+        boolean isAppearance = "appearance".equals(tab);
+        if (contentPrivacy != null) contentPrivacy.setVisibility(isPrivacy ? View.VISIBLE : View.GONE);
+        if (contentAppearance != null) contentAppearance.setVisibility(isAppearance ? View.VISIBLE : View.GONE);
+        updateTabStyle(tabPrivacy, isPrivacy);
+        updateTabStyle(tabAppearance, isAppearance);
 
         if (contentProfile != null) contentProfile.setVisibility(isProfile ? View.VISIBLE : View.GONE);
         if (contentSecurity != null) contentSecurity.setVisibility(isSecurity ? View.VISIBLE : View.GONE);
@@ -299,11 +314,37 @@ public class SettingsActivity extends AppCompatActivity {
         updateTabStyle(tabDanger, isDanger);
     }
 
+    // 外觀：跟隨系統／明亮／深色，切換後整個 App 立即換色（對齊網頁版 AccountSettings 的外觀設定）
+    private void setupThemeOptions() {
+        String[][] options = {
+                {com.example.topics.data.local.ThemeManager.MODE_SYSTEM, "option_theme_system"},
+                {com.example.topics.data.local.ThemeManager.MODE_LIGHT, "option_theme_bright"},
+                {com.example.topics.data.local.ThemeManager.MODE_DARK, "option_theme_dark"}
+        };
+        int[] rows = {R.id.option_theme_system, R.id.option_theme_bright, R.id.option_theme_dark};
+        int[] checks = {R.id.option_theme_system_check, R.id.option_theme_bright_check, R.id.option_theme_dark_check};
+        com.example.topics.data.local.ThemeManager themeManager = com.example.topics.data.local.ThemeManager.getInstance(this);
+        String current = themeManager.getMode();
+        for (int i = 0; i < rows.length; i++) {
+            View row = findViewById(rows[i]);
+            View check = findViewById(checks[i]);
+            if (row == null) continue;
+            String mode = options[i][0];
+            if (check != null) check.setVisibility(mode.equals(current) ? View.VISIBLE : View.INVISIBLE);
+            row.setOnClickListener(v -> {
+                if (mode.equals(themeManager.getMode())) return;
+                getIntent().putExtra("settings_tab", "appearance");
+                themeManager.setMode(mode);
+                setupThemeOptions();
+            });
+        }
+    }
+
     private void updateTabStyle(TextView tab, boolean selected) {
         if (tab == null) return;
         if (selected) {
             tab.setBackgroundResource(R.drawable.bg_login_card);
-            tab.setTextColor(getResources().getColor(R.color.white));
+            tab.setTextColor(getColor(R.color.ad_text));
         } else {
             tab.setBackground(null);
             tab.setTextColor(getResources().getColor(R.color.hint_text));
@@ -348,7 +389,7 @@ public class SettingsActivity extends AppCompatActivity {
                 }
 
                 if(user.createdAt != null && user.createdAt.length() >= 10 && tvSettingsJoinDate != null) {
-                    tvSettingsJoinDate.setText(user.createdAt.substring(0, 10));
+                    tvSettingsJoinDate.setText(DiaryTime.dateOnly(user.createdAt));
                 }
 
                 bindAvatar(user);
@@ -461,7 +502,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         TextView zoomLabel = new TextView(this);
         zoomLabel.setText("縮放");
-        zoomLabel.setTextColor(getResources().getColor(R.color.white));
+        zoomLabel.setTextColor(getColor(R.color.ad_text));
         zoomLabel.setTextSize(12);
         LinearLayout.LayoutParams zoomLabelParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);

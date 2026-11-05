@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 明亮主題（對齊網頁版 data-theme="bright"）；深色在 values-night/colors_theme.xml -->
+<resources>
+    <color name="ad_bg">#FBFDFF</color>
+    <color name="ad_card">#FAFFFFFF</color>
+    <color name="ad_card_solid">#FFFFFF</color>
+    <color name="ad_input_bg">#FFFFFF</color>
+    <color name="ad_input_border">#47008FC7</color>
+    <color name="ad_text">#102033</color>
+    <color name="ad_text_secondary">#2F465C</color>
+    <color name="ad_text_muted">#5F7286</color>
+    <color name="ad_text_faint">#5C7288</color>
+    <color name="ad_text_dim">#5F7286</color>
+    <color name="ad_accent">#1769B2</color>
+    <color name="ad_mint">#0BBF9F</color>
+    <color name="ad_on_mint">#04131C</color>
+    <color name="ad_chip_bg">#171769B2</color>
+    <color name="ad_chip_border">#4D008FC7</color>
+    <color name="ad_note_bg">#0F1769B2</color>
+    <color name="ad_danger">#B42318</color>
+    <color name="ad_warning">#B7791F</color>
+    <color name="ad_overlay">#47263F5F</color>
+    <color name="ad_select_text">#2F465C</color>
+    <color name="ad_chip_tint">#141769B2</color>
+    <color name="ad_divider_soft">#1A0E7490</color>
+    <color name="ad_reaction_bg">#0F1769B2</color>
+    <color name="ad_reaction_active">#2E1769B2</color>
+    <color name="ad_nav_bg">#EBFFFFFF</color>
+    <color name="ad_control_bg">#B3FFFFFF</color>
+    <color name="ad_card_bg">#E6FFFFFF</color>
+    <color name="ad_floating_bg">#E6FFFFFF</color>
+    <color name="ad_input_focus_bg">#F2FFFFFF</color>
+    <color name="ad_input_pressed_bg">#FFFFFFFF</color>
+    <color name="ad_map_chip_bg">#EBFFFFFF</color>
+    <color name="ad_preview_start">#F7FFFFFF</color>
+    <color name="ad_preview_end">#EBF4FBFF</color>
+    <color name="ad_menu_bg">#FAFFFFFF</color>
+    <color name="ad_input_hover_bg">#FFFFFF</color>
+    <color name="ad_legacy_input_bg">#FFFFFF</color>
+    <color name="ad_placeholder">#E2EEF6</color>
+    <color name="ad_popup_bg">#F7FFFFFF</color>
+    <color name="ad_avatar_stroke">#4D0E7490</color>
+    <color name="ad_auth_overlay">#B3FBFDFF</color>
+    <color name="ad_drawer_bg">#F7FBFDFF</color>
+    <color name="ad_verify_card">#FFFFFF</color>
+    <color name="ad_chart_grid">#260E7490</color>
+</resources>

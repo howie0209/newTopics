@@ -20,7 +20,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="地圖日記"
-        android:textColor="@color/white"
+        android:textColor="@color/ad_text"
         android:textSize="22sp"
         android:textStyle="bold" />
 
@@ -40,7 +40,7 @@
             android:background="@drawable/bg_login_card"
             android:gravity="center"
             android:text="✨ 我的日記"
-            android:textColor="@color/white"
+            android:textColor="@color/ad_text"
             android:textStyle="bold" />
 
         <TextView
@@ -72,7 +72,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="0"
-                android:textColor="@color/white"
+                android:textColor="@color/ad_text"
                 android:textSize="22sp"
                 android:textStyle="bold" />
             <TextView
@@ -119,10 +119,10 @@
             android:layout_height="38dp"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
-            android:backgroundTint="#25FFFFFF"
+            android:backgroundTint="@color/ad_chip_tint"
             android:text="🔒 私人"
             android:textSize="10sp"
-            android:textColor="@color/white"
+            android:textColor="@color/ad_text"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
         <Button
@@ -131,10 +131,10 @@
             android:layout_height="38dp"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
-            android:backgroundTint="#25FFFFFF"
+            android:backgroundTint="@color/ad_chip_tint"
             android:text="👥 朋友"
             android:textSize="10sp"
-            android:textColor="@color/white"
+            android:textColor="@color/ad_text"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
         <Button
@@ -142,10 +142,10 @@
             android:layout_width="0dp"
             android:layout_height="38dp"
             android:layout_weight="1"
-            android:backgroundTint="#25FFFFFF"
+            android:backgroundTint="@color/ad_chip_tint"
             android:text="👁️ 公開"
             android:textSize="10sp"
-            android:textColor="@color/white"
+            android:textColor="@color/ad_text"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
     </LinearLayout>
 
@@ -153,7 +153,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="24dp"
-        android:background="#1AFFFFFF"/>
+        android:background="@color/ad_reaction_bg"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -161,7 +161,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginBottom="12dp"
         android:text="最近更新"
-        android:textColor="@color/white"
+        android:textColor="@color/ad_text"
         android:textSize="14sp"
         android:textStyle="bold" />
 

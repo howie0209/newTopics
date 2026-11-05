@@ -11,7 +11,7 @@
         android:id="@+id/tv_suggestion_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
+        android:textColor="@color/ad_text"
         android:textSize="13sp"
         android:lineSpacingExtra="3dp" />
 </LinearLayout>

@@ -9,6 +9,7 @@ import com.example.topics.data.model.DiaryDetailData;
 import com.example.topics.data.model.DiaryDto;
 import com.example.topics.data.model.DiaryListData;
 import com.example.topics.data.model.EmptyResponse;
+import com.example.topics.data.model.FeedData;
 import com.example.topics.data.model.ReactionUpdateData;
 import com.example.topics.data.remote.ApiClient;
 
@@ -45,6 +46,40 @@ public class DiaryRepository extends BaseRepository {
 
             @Override
             public void onFailure(Call<ApiResponse<DiaryListData>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
+    }
+
+    // 動態牆：filter 是 all / friends / public，cursor 為 null 代表第一頁
+    public void getFeed(String filter, String cursor, RepositoryCallback<FeedData> callback) {
+        api.getFeed(filter, cursor).enqueue(new Callback<ApiResponse<FeedData>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<FeedData>> call, Response<ApiResponse<FeedData>> response) {
+                dispatchIfSuccessful(response, callback);
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<FeedData>> call, Throwable t) {
+                callback.onError(networkMessage(t));
+            }
+        });
+    }
+
+    public void getDiary(String diaryId, RepositoryCallback<DiaryDto> callback) {
+        api.getDiary(diaryId).enqueue(new Callback<ApiResponse<DiaryDetailData>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<DiaryDetailData>> call, Response<ApiResponse<DiaryDetailData>> response) {
+                ApiResponse<DiaryDetailData> body = response.body();
+                if (response.isSuccessful() && body != null && body.success && body.data != null && body.data.diary != null) {
+                    callback.onSuccess(body.data.diary);
+                    return;
+                }
+                callback.onError(extractMessage(response, body));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<DiaryDetailData>> call, Throwable t) {
                 callback.onError(networkMessage(t));
             }
         });
