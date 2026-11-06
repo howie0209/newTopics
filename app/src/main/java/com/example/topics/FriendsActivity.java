@@ -615,4 +615,11 @@ public class FriendsActivity extends AppCompatActivity {
         @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
         @Override public void afterTextChanged(Editable s) { onChange.run(); }
     }
+
+    // 點輸入框以外的地方收起鍵盤（照 iOS 版）
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+        KeyboardDismiss.handle(this, event);
+        return super.dispatchTouchEvent(event);
+    }
 }

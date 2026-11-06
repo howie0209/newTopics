@@ -28,9 +28,12 @@ public class ApiClient {
             Context appContext = context.getApplicationContext();
             SessionManager sessionManager = SessionManager.getInstance(appContext);
 
+            // 等待時間：一般請求 15 秒；檢查登入狀態 8 秒（照 iOS 版）；上傳 30 秒；AI 才給 65 秒
             OkHttpClient client = new OkHttpClient.Builder()
+                    .addInterceptor(createTimeoutInterceptor())
                     .addInterceptor(createAuthInterceptor(appContext, sessionManager))
-                    .readTimeout(65, TimeUnit.SECONDS)
+                    .connectTimeout(10, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
                     .writeTimeout(30, TimeUnit.SECONDS)
                     .build();
             retrofit = new Retrofit.Builder()
@@ -49,6 +52,26 @@ public class ApiClient {
 
     public static void resetAuthRedirectGuard() {
         authRedirectInProgress.set(false);
+    }
+
+    private static Interceptor createTimeoutInterceptor() {
+        return chain -> {
+            Request request = chain.request();
+            String path = request.url().encodedPath();
+            String method = request.method();
+            if (path.contains("/ai/")) {
+                return chain.withReadTimeout(65, TimeUnit.SECONDS).proceed(request);
+            }
+            if ("GET".equals(method) && path.endsWith("/users/me")) {
+                return chain.withConnectTimeout(8, TimeUnit.SECONDS).withReadTimeout(8, TimeUnit.SECONDS).proceed(request);
+            }
+            boolean upload = request.body() != null && request.body().contentType() != null
+                    && "multipart".equals(request.body().contentType().type());
+            if (upload) {
+                return chain.withReadTimeout(30, TimeUnit.SECONDS).proceed(request);
+            }
+            return chain.proceed(request);
+        };
     }
 
     private static Interceptor createAuthInterceptor(Context context, SessionManager sessionManager) {

@@ -540,4 +540,11 @@ public class AdminActivity extends AppCompatActivity {
         destroyed = true;
         super.onDestroy();
     }
+
+    // 點輸入框以外的地方收起鍵盤（照 iOS 版）
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+        KeyboardDismiss.handle(this, event);
+        return super.dispatchTouchEvent(event);
+    }
 }

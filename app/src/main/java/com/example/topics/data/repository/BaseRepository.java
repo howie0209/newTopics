@@ -40,12 +40,31 @@ abstract class BaseRepository {
             }
         } catch (Exception ignored) {
         }
-        return "Request failed (" + response.code() + ")";
+        // 後端沒給訊息時，換成看得懂的中文（照 iOS 版 localizedError）
+        int code = response.code();
+        if (code == 401) return "登入狀態已失效，請重新登入";
+        if (code == 403) return "你沒有權限進行這個操作";
+        if (code == 404) return "找不到這筆資料，可能已被刪除";
+        if (code == 413) return "檔案太大，請換一張較小的照片";
+        if (code == 429) return "操作太頻繁，請稍後再試";
+        if (code >= 500) return "伺服器暫時無法回應，請稍後再試";
+        return "暫時無法完成，請稍後再試";
     }
 
+    // 網路錯誤一律顯示中文，不把系統的英文錯誤直接丟給使用者（照 iOS 版 localizedError）
     protected String networkMessage(Throwable throwable) {
+        if (throwable instanceof java.net.SocketTimeoutException) return "連線逾時，請檢查網路後再試";
+        if (throwable instanceof java.net.UnknownHostException
+                || throwable instanceof java.net.ConnectException
+                || throwable instanceof javax.net.ssl.SSLException
+                || throwable instanceof java.io.IOException) {
+            String message = throwable.getMessage();
+            if (message != null && message.matches(".*[\\u4e00-\\u9fff].*")) return message;
+            return "網路連線失敗，請稍後再試";
+        }
         String message = throwable.getMessage();
-        return message == null || message.isEmpty() ? "網路連線失敗，請稍後再試" : message;
+        if (message != null && message.matches(".*[\\u4e00-\\u9fff].*")) return message;
+        return "網路連線失敗，請稍後再試";
     }
 
     // 🎯 共用：圖片 Uri 轉 MultipartBody.Part，fieldName 例如 "image" 或 "avatar"

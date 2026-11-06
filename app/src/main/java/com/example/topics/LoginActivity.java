@@ -352,4 +352,11 @@ public class LoginActivity extends AppCompatActivity implements OnMapReadyCallba
         googleMap.getUiSettings().setAllGesturesEnabled(false);
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(23.6, 121.0), 7.5f));
     }
+
+    // 點輸入框以外的地方收起鍵盤（照 iOS 版）
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+        KeyboardDismiss.handle(this, event);
+        return super.dispatchTouchEvent(event);
+    }
 }

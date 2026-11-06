@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 拍照與壓縮後的日記照片暫存在 cache/images/，透過 FileProvider 分享給相機與上傳 -->
+<paths>
+    <cache-path name="images" path="images/" />
+</paths>

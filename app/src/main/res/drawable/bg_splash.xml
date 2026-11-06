@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 啟動畫面背景（明亮），照 iOS 版 SplashBackground；深色在 drawable-night/bg_splash.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="315"
+        android:centerColor="#E0F5FA"
+        android:endColor="#F5F8FF"
+        android:startColor="#F0FAFC" />
+</shape>

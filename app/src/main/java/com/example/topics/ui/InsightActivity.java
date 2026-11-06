@@ -467,4 +467,11 @@ public class InsightActivity extends AppCompatActivity {
         if (chatController != null) chatController.destroy();
         super.onDestroy();
     }
+
+    // 點輸入框以外的地方收起鍵盤（照 iOS 版）
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+        com.example.topics.KeyboardDismiss.handle(this, event);
+        return super.dispatchTouchEvent(event);
+    }
 }

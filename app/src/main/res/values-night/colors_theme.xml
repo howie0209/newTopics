@@ -49,4 +49,13 @@
     <color name="ad_memory_bg_pressed">#1450B9F0</color>
     <color name="ad_memory_border_pressed">#6B6FD9FF</color>
     <color name="ad_fab_icon">#EDF8FF</color>
+    <color name="ad_sheet_bg">#F70A1423</color>
+    <color name="ad_sheet_group_bg">#14243A</color>
+    <color name="ad_sheet_group_border">#24BFE8FF</color>
+    <color name="ad_sheet_divider">#1AFFFFFF</color>
+    <color name="ad_sheet_handle">#40FFFFFF</color>
+    <color name="ad_sheet_icon_camera_bg">#2983CAFF</color>
+    <color name="ad_sheet_icon_library_bg">#248EFFDC</color>
+    <color name="ad_sheet_icon_library">#8EFFDC</color>
+    <color name="ad_sheet_scrim">#B3000000</color>
 </resources>

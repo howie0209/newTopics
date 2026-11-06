@@ -113,6 +113,7 @@ public class DiaryRepository extends BaseRepository {
             double lat,
             double lng,
             String placeName,
+            String locationAccuracy,
             Uri imageUri,
             RepositoryCallback<DiaryDto> callback
     ) {
@@ -125,7 +126,7 @@ public class DiaryRepository extends BaseRepository {
         fields.put("lat", textPart(String.valueOf(lat)));
         fields.put("lng", textPart(String.valueOf(lng)));
         fields.put("placeName", textPart(placeName == null ? "" : placeName));
-        fields.put("locationAccuracy", textPart("precise"));
+        fields.put("locationAccuracy", textPart("approximate".equals(locationAccuracy) ? "approximate" : "precise"));
 
         api.createDiary(fields, imagePart(appContext, imageUri, "image")).enqueue(new Callback<ApiResponse<DiaryDetailData>>() {
             @Override
@@ -154,6 +155,7 @@ public class DiaryRepository extends BaseRepository {
             String visibility,
             double currentLat,
             double currentLng,
+            String locationAccuracy,
             RepositoryCallback<DiaryDto> callback
     ) {
         HashMap<String, Object> body = new HashMap<>();
@@ -166,7 +168,7 @@ public class DiaryRepository extends BaseRepository {
         HashMap<String, Object> currentLocation = new HashMap<>();
         currentLocation.put("lat", currentLat);
         currentLocation.put("lng", currentLng);
-        currentLocation.put("accuracyType", "precise");
+        currentLocation.put("accuracyType", "approximate".equals(locationAccuracy) ? "approximate" : "precise");
         body.put("currentLocation", currentLocation);
 
         api.updateDiary(diaryId, body).enqueue(new Callback<ApiResponse<DiaryDetailData>>() {

@@ -28,6 +28,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -62,6 +63,8 @@ import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.navigation.NavigationView;
 
 import java.util.ArrayList;
@@ -140,7 +143,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private TextView tvCountMine, tvCountVisible;
     private Button btnAllFilter, btnPriv, btnFrdOnly, btnPub;
     private TextView tvTitleCounter;
-    private static final long DIARY_IMAGE_MAX_BYTES = 5L * 1024 * 1024;
+    private static final int DIARY_TEXT_MAX = 2000;
+    private Uri pendingCameraUri;
+    private boolean processingPhoto;
     private LinearLayout layoutMyDiaryRoot, layoutFriendManagement;
 
     private RecyclerView rvDiaryList;
@@ -414,17 +419,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                             uri = data.getClipData().getItemAt(0).getUri();
                         }
                         if (uri == null) return;
-                        String error = validateDiaryImage(uri);
-                        if (error != null) {
-                            Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        // 跟網頁版一樣，一篇日記只放一張照片
-                        selectedImageUris.clear();
-                        selectedImageUris.add(uri);
-                        if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
-                        if (rvImagePreview != null) rvImagePreview.setVisibility(View.VISIBLE);
+                        processDiaryPhoto(uri);
                     }
+                }
+        );
+
+        // 拍照：用系統相機拍好存到暫存檔，再跟選照片一樣壓縮處理
+        ActivityResultLauncher<Uri> cameraLauncher = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                success -> {
+                    Uri uri = pendingCameraUri;
+                    pendingCameraUri = null;
+                    if (Boolean.TRUE.equals(success) && uri != null) processDiaryPhoto(uri);
                 }
         );
 
@@ -433,11 +439,11 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             imagePicker.setOnClickListener(v -> {
                 if (sheetMode == SHEET_EDIT) {
                     Toast.makeText(this, "圖片目前僅支援新增日記時上傳", Toast.LENGTH_SHORT).show();
+                } else if (processingPhoto) {
+                    Toast.makeText(this, "照片處理中，請稍候", Toast.LENGTH_SHORT).show();
                 } else if (diaryInput != null && diaryInput.isEnabled()) {
-                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                    intent.setType("image/*");
-                    intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/jpeg", "image/png", "image/webp"});
-                    photoPickerLauncher.launch(Intent.createChooser(intent, "選擇照片"));
+                    KeyboardDismiss.hide(this);
+                    showPhotoSourceSheet(cameraLauncher, photoPickerLauncher);
                 } else {
                     Toast.makeText(this, "查看模式下無法修改照片", Toast.LENGTH_SHORT).show();
                 }
@@ -843,6 +849,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         setDiaryFieldsEnabled(true);
         setDiaryLoading(false);
         if (tvEditRulesPlace != null) tvEditRulesPlace.setText("📍 日記位置不可修改：" + placeTextFor(entry));
+        resolveMissingPlace(entry, tvEditRulesPlace, "📍 日記位置不可修改：");
         showDiaryCard("EDIT MEMORY", "編輯日記");
         refreshEditStatus();
         refreshSheetLocation();
@@ -875,6 +882,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             tvDetailEdited.setVisibility(edited ? View.VISIBLE : View.GONE);
         }
         if (tvDetailPlace != null) tvDetailPlace.setText("📍 " + placeTextFor(entry));
+        resolveMissingPlace(entry, tvDetailPlace, "📍 ");
         if (tvDetailMood != null) tvDetailMood.setText(DiaryMapper.moodDisplayLabel(entry.moodType) + " / " + entry.intensity);
         if (tvDetailVisibility != null) {
             String icon = entry.visibility == 0 ? "🔒 " : entry.visibility == 1 ? "👥 " : "🌐 ";
@@ -893,8 +901,108 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private String placeTextFor(DiaryEntry entry) {
         if (entry.placeName != null && !entry.placeName.trim().isEmpty()) return PlaceNameResolver.normalizeTaiwan(entry.placeName);
-        if (entry.location == null) return "未知位置";
-        return PlaceNameResolver.formatCoordinates(entry.location.latitude, entry.location.longitude);
+        return entry.location == null ? PlaceNameResolver.UNKNOWN : "正在取得地點...";
+    }
+
+    // 日記沒有存地名時，跟 iOS 版一樣用座標查地名再補上，不直接顯示座標
+    private void resolveMissingPlace(DiaryEntry entry, TextView target, String prefix) {
+        if (target == null || entry == null || entry.location == null) return;
+        if (entry.placeName != null && !entry.placeName.trim().isEmpty()) return;
+        String diaryId = entry.id;
+        PlaceNameResolver.resolve(this, entry.location.latitude, entry.location.longitude, placeName -> {
+            if (!isActive() || diaryCardView == null || diaryCardView.getVisibility() != View.VISIBLE) return;
+            DiaryEntry current = sheetMode == SHEET_EDIT ? editingEntry : getCurrentDiaryEntry();
+            if (current != null && diaryId != null && diaryId.equals(current.id)) target.setText(prefix + placeName);
+        });
+    }
+
+    // 使用者只允許「大概位置」時送 approximate，照 iOS 版 LocationManager.accuracyType
+    private String locationAccuracyType() {
+        return ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                ? "precise" : "approximate";
+    }
+
+    // 選好或拍好的照片：先縮圖、轉正、壓成 JPEG 再放進日記（照 iOS 版 resizedForDiaryUpload）
+    // 拍照或選擇照片：iOS action sheet 風格的底部選單（明亮／深色自動套用 colors_theme）
+    private void showPhotoSourceSheet(ActivityResultLauncher<Uri> cameraLauncher,
+                                      ActivityResultLauncher<Intent> photoPickerLauncher) {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View content = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_photo_source, null, false);
+
+        content.findViewById(R.id.row_photo_camera).setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            dialog.dismiss();
+            try {
+                pendingCameraUri = DiaryImageProcessor.createCameraUri(this);
+                cameraLauncher.launch(pendingCameraUri);
+            } catch (Exception e) {
+                pendingCameraUri = null;
+                Toast.makeText(this, "無法開啟相機", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        content.findViewById(R.id.row_photo_library).setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            dialog.dismiss();
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            photoPickerLauncher.launch(Intent.createChooser(intent, "選擇照片"));
+        });
+
+        content.findViewById(R.id.btn_photo_cancel).setOnClickListener(v -> dialog.dismiss());
+
+        dialog.setContentView(content);
+        dialog.setOnShowListener(d -> {
+            View sheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            if (sheet != null) {
+                sheet.setBackgroundColor(Color.TRANSPARENT);
+                BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(sheet);
+                behavior.setSkipCollapsed(true);
+                behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            }
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setDimAmount(0f);
+                dialog.getWindow().getDecorView().setBackgroundColor(Color.TRANSPARENT);
+                View container = dialog.findViewById(com.google.android.material.R.id.container);
+                if (container != null) {
+                    container.setBackgroundColor(ContextCompat.getColor(this, R.color.ad_sheet_scrim));
+                }
+            }
+        });
+        dialog.show();
+    }
+
+    private void processDiaryPhoto(Uri source) {
+        processingPhoto = true;
+        TextView picker = findViewById(R.id.card_image_picker);
+        if (picker != null) picker.setText("⏳ 照片處理中...");
+        DiaryImageProcessor.prepare(this, source, new DiaryImageProcessor.Callback() {
+            @Override
+            public void onReady(Uri uri) {
+                if (!isActive()) return;
+                processingPhoto = false;
+                if (picker != null) picker.setText("📷 拍照或選擇照片");
+                // 跟網頁版一樣，一篇日記只放一張照片
+                selectedImageUris.clear();
+                selectedImageUris.add(uri);
+                if (imageAdapter != null) imageAdapter.notifyDataSetChanged();
+                if (rvImagePreview != null) rvImagePreview.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onError(String message) {
+                if (!isActive()) return;
+                processingPhoto = false;
+                if (picker != null) picker.setText("📷 拍照或選擇照片");
+                Toast.makeText(MapActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+        KeyboardDismiss.handle(this, event);
+        return super.dispatchTouchEvent(event);
     }
 
     // 取得目前位置：新增時顯示地點，查看／編輯時計算與原地點的距離
@@ -914,8 +1022,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 return;
             }
             if (sheetMode == SHEET_CREATE && tvLocationLine != null) {
-                String accuracy = location.hasAccuracy() ? " · ±" + Math.round(location.getAccuracy()) + "m" : "";
-                tvLocationLine.setText("📍 " + PlaceNameResolver.formatCoordinates(location.getLatitude(), location.getLongitude()) + accuracy);
+                // 照 iOS 版：顯示地名，後面標註精確位置或概略位置
+                String accuracy = " · " + ("approximate".equals(locationAccuracyType()) ? "概略位置" : "精確位置");
+                tvLocationLine.setText("📍 正在取得地點..." + accuracy);
                 PlaceNameResolver.resolve(this, location.getLatitude(), location.getLongitude(), placeName -> {
                     if (isActive() && sheetMode == SHEET_CREATE && tvLocationLine != null) {
                         tvLocationLine.setText("📍 " + placeName + accuracy);
@@ -1916,6 +2025,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     Toast.makeText(this, "請輸入日記內容", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                if (diaryText.length() > DIARY_TEXT_MAX) {
+                    Toast.makeText(this, "日記內容最多 2000 字", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (processingPhoto) {
+                    Toast.makeText(this, "照片處理中，請稍候", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
                 DiaryEntry existing = sheetMode == SHEET_EDIT ? editingEntry : null;
                 if (existing != null && existing.id != null && !existing.id.isEmpty()) {
@@ -1952,7 +2069,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 DiaryMapper.visibilityApiValue(visibility),
                 location.latitude,
                 location.longitude,
-                placeName,
+                PlaceNameResolver.isResolved(placeName) ? placeName : "",
+                locationAccuracyType(),
                 imageUri,
                 new RepositoryCallback<DiaryDto>() {
                     @Override
@@ -1996,6 +2114,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 DiaryMapper.visibilityApiValue(visibility),
                 location.getLatitude(),
                 location.getLongitude(),
+                locationAccuracyType(),
                 new RepositoryCallback<DiaryDto>() {
                     @Override
                     public void onSuccess(DiaryDto diary) {
@@ -2162,21 +2281,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             boolean edited = entry.editCount > 0 || (entry.lastEditedAt != null && !entry.lastEditedAt.isEmpty());
             tvEdited.setVisibility(edited ? View.VISIBLE : View.GONE);
         }
-    }
-
-    // 檢查照片格式與大小，對齊網頁版：只收 JPG、PNG、WebP，最大 5MB
-    private String validateDiaryImage(Uri uri) {
-        String type = getContentResolver().getType(uri);
-        if (type == null || !(type.equals("image/jpeg") || type.equals("image/png") || type.equals("image/webp"))) {
-            return "圖片格式不支援，請上傳 JPG、PNG 或 WebP。";
-        }
-        long size = -1;
-        try (android.database.Cursor cursor = getContentResolver().query(uri, new String[]{android.provider.OpenableColumns.SIZE}, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) size = cursor.getLong(0);
-        } catch (Exception ignored) {
-        }
-        if (size > DIARY_IMAGE_MAX_BYTES) return "圖片大小不可超過 5MB。";
-        return null;
     }
 
     private String formatDate(String value) {

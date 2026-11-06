@@ -36,8 +36,9 @@
         <activity
             android:name=".MainActivity"
             android:exported="false" />
+        <!-- 啟動畫面（照 iOS 版 SplashView），檢查完登入狀態再進地圖或登入頁 -->
         <activity
-            android:name=".LoginActivity"
+            android:name=".SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -45,6 +46,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false" />
         <activity
             android:name=".MapActivity"
             android:exported="false" />
@@ -67,6 +71,17 @@
         <activity
             android:name=".NotificationsActivity"
             android:exported="false" />
+
+        <!-- 拍照與照片壓縮用的暫存檔 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 
