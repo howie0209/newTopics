@@ -13,6 +13,7 @@ public class VerifyActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_verify);
+        com.example.topics.ui.design.AdriftSystemUi.applyEdgeToEdge(this, false);
 
         Button btnGoLogin = findViewById(R.id.btn_go_to_login);
 

@@ -16,6 +16,7 @@ public class ImagePreviewActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_preview);
+        com.example.topics.ui.design.AdriftSystemUi.applyEdgeToEdge(this, false);
 
         ImageView imageView = findViewById(R.id.iv_fullscreen_image);
         ImageButton closeButton = findViewById(R.id.btn_close_preview);

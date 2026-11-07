@@ -78,6 +78,7 @@ public class AdminActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin);
+        com.example.topics.ui.design.AdriftSystemUi.applyEdgeToEdge(this, true);
 
         adminRepository = new AdminRepository(this);
         sessionManager = SessionManager.getInstance(this);
